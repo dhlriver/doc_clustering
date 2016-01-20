@@ -42,7 +42,7 @@ def cluster_and_test(vec_list, labels):
 
     # model = sklearn.cluster.AgglomerativeClustering(n_clusters=5,
     #                                                 linkage="average", affinity="cosine")
-    model = sklearn.cluster.KMeans(n_clusters=5, n_jobs=4, n_init=60)
+    model = sklearn.cluster.KMeans(n_clusters=20, n_jobs=4, n_init=60)
     model.fit(cl_data)
     # print estimator.labels_
     # print labels[0:100]
@@ -84,9 +84,15 @@ def clustering(doc_vec_file_name, labels_file_name):
     x = numpy.fromfile(fin, dtype=numpy.int32, count=2)
     num_vecs = x[0]
     vec_len = x[1]
+    print 'dim', vec_len
     vec_list = list()
     for i in xrange(num_vecs):
         vec = numpy.fromfile(fin, numpy.float32, vec_len)
+        # vec = vec[100-64:]
+        # vec = vec[64:]
+        # vec = vec[:64]
+        # if i < 5:
+        #     print vec
         vec /= numpy.linalg.norm(vec)
         vec_list.append(vec)
     fin.close()
@@ -97,6 +103,30 @@ def clustering(doc_vec_file_name, labels_file_name):
     fin.close()
 
     cluster_and_test(vec_list, gold_labels)
+
+
+def cluster_nyt():
+    labels_file_name = 'e:/dc/nyt/labels_f2012.bin'
+    doc_vec_file_name = 'e:/dc/nyt/vecs/doc_vec_lo_f2012_joint_128.bin'
+    clustering(doc_vec_file_name, labels_file_name)
+
+
+def cluster_20ng():
+    labels_file_name = 'e:/dc/20ng_data/all_doc_labels.bin'
+    doc_vec_file_name = 'e:/dc/20ng_data/vecs/doc_vec_joint_128.bin'
+    clustering(doc_vec_file_name, labels_file_name)
+
+
+def cluster_20ng_train():
+    labels_file_name = 'e:/dc/20ng_data/split/train_labels.bin'
+    doc_vec_file_name = 'e:/dc/20ng_data/vecs/train_doc_vec_joint_100.bin'
+    clustering(doc_vec_file_name, labels_file_name)
+
+
+def cluster_20ng_test():
+    labels_file_name = 'e:/dc/20ng_data/split/test_labels.bin'
+    doc_vec_file_name = 'e:/dc/20ng_data/vecs/test_doc_vec_joint_100.bin'
+    clustering(doc_vec_file_name, labels_file_name)
 
 
 def main():
@@ -113,13 +143,10 @@ def main():
     # result_file_name = '/media/dhl/Data/dc/nyt/mv_cluster_result.txt'
     # clustering_for_doc_vec_label_file(doc_vec_label_file_name, result_file_name)
 
-    labels_file_name = 'e:/dc/nyt/labels_f2012.bin'
-    # labels_file_name = '/media/dhl/Data/dc/nyt/labels_all.bin'
-    # doc_vec_file_name = '/media/dhl/Data/dc/nyt/vecs/docvecs_dbow_100_rm_rsw.bin'
-    # doc_vec_file_name = '/media/dhl/Data/dc/nyt/vecs/tfidf_docvecs_dbow_rsw_100.bin'
-    doc_vec_file_name = 'e:/dc/nyt/vecs/es_doc_vec_64_lo_f2012_joint.bin'
-    # doc_vec_file_name = '/media/dhl/Data/dc/nyt/vecs/es_vec_lo.bin'
-    clustering(doc_vec_file_name, labels_file_name)
+    # cluster_nyt()
+    # cluster_20ng()
+    # cluster_20ng_train()
+    cluster_20ng_test()
 
 
 if __name__ == '__main__':

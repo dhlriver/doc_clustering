@@ -1,4 +1,6 @@
-import numpy
+import numpy as np
+import io_utils
+import random
 
 label_list = ['africa', 'americas', 'asia', 'europe', 'middleeast']
 
@@ -18,13 +20,13 @@ def filter_vecs(full_vec_list_file_name, label_list_file_name, dst_file_name):
     fin0 = open(full_vec_list_file_name, 'rb')
     fin1 = open(label_list_file_name, 'rb')
 
-    x = numpy.fromfile(fin0, '<i4', count=2)
+    x = np.fromfile(fin0, '<i4', count=2)
     print x
     vec_len = x[1]
     vec_list = list()
     doc_cnt = 0
     for i in xrange(x[0]):
-        vec = numpy.fromfile(fin0, '<f4', vec_len)
+        vec = np.fromfile(fin0, '<f4', vec_len)
         line = fin1.readline().strip()
         vals = line.split('\t')
         label_id = get_label_id(vals[1])
@@ -39,7 +41,7 @@ def filter_vecs(full_vec_list_file_name, label_list_file_name, dst_file_name):
         doc_cnt += 1
 
     fout = open(dst_file_name, 'wb')
-    numpy.array([len(vec_list), vec_len], numpy.int32).tofile(fout)
+    np.array([len(vec_list), vec_len], np.int32).tofile(fout)
     for vec in vec_list:
         vec.tofile(fout)
     fout.close()
@@ -85,8 +87,8 @@ def filter_doc_entity_file(entity_list_file_name, full_doc_entity_file_name, lab
             continue
 
         num_vertices = int(vals0[1])
-        adj_vertices = numpy.zeros(num_vertices, dtype=numpy.int32)
-        weights = numpy.zeros(num_vertices, dtype=numpy.int32)
+        adj_vertices = np.zeros(num_vertices, dtype=np.int32)
+        weights = np.zeros(num_vertices, dtype=np.int32)
         for i in xrange(num_vertices):
             adj_vertices[i] = int(vals0[i * 2 + 2])
             weights[i] = int(vals0[i * 2 + 3])
@@ -106,12 +108,52 @@ def filter_doc_entity_file(entity_list_file_name, full_doc_entity_file_name, lab
     fout.close()
 
     fout = open(dst_bin_file_name, 'wb')
-    numpy.array([len(adj_list), num_entities], dtype=numpy.int32).tofile(fout)
+    np.array([len(adj_list), num_entities], dtype=np.int32).tofile(fout)
     for i in xrange(len(adj_list)):
-        numpy.array([len(adj_list[i])], dtype=numpy.int32).tofile(fout)
+        np.array([len(adj_list[i])], dtype=np.int32).tofile(fout)
         adj_list[i].tofile(fout)
         weights_list[i].tofile(fout)
     fout.close()
+
+
+def split_vectors(all_vec_file_name, all_labels_file_name, dst_train_vec_file_name,
+                  dst_train_labels_file_name, dst_test_vec_file_name, dst_test_labels_file_name):
+    all_vec_list = io_utils.load_vec_list_file(all_vec_file_name)
+    all_labels = io_utils.load_labels_file(all_labels_file_name)
+
+    train_vec_list = list()
+    train_labels = list()
+    test_vec_list = list()
+    test_labels = list()
+    for vec, label in zip(all_vec_list, all_labels):
+        rand_val = random.randint(1, 10)
+        if rand_val == 1:
+            test_vec_list.append(vec)
+            test_labels.append(label)
+        else:
+            train_vec_list.append(vec)
+            train_labels.append(label)
+
+    print len(train_labels), 'training samples'
+    print len(test_labels), 'testing samples'
+
+    def save_vecs(vec_list, dst_file_name):
+        fout = open(dst_file_name, 'wb')
+        np.asarray([len(vec_list), len(vec_list[0])], np.int32).tofile(fout)
+        for cur_vec in vec_list:
+            cur_vec.tofile(fout)
+        fout.close()
+
+    def save_labels(labels_list, dst_file_name):
+        fout = open(dst_file_name, 'wb')
+        np.asarray([len(labels_list)], np.int32).tofile(fout)
+        np.asarray(labels_list, np.int32).tofile(fout)
+        fout.close()
+
+    save_vecs(train_vec_list, dst_train_vec_file_name)
+    save_labels(train_labels, dst_train_labels_file_name)
+    save_vecs(test_vec_list, dst_test_vec_file_name)
+    save_labels(test_labels, dst_test_labels_file_name)
 
 
 def do_filter_vecs():
@@ -131,9 +173,21 @@ def do_filter_doc_entity_file():
                            dst_file_name, dst_bin_file_name)
 
 
+def split_20ng_vecs():
+    all_vecs_file_name = 'e:/dc/20ng_data/vecs/all_doc_vec_joint_200.bin'
+    all_labels_file_name = 'e:/dc/20ng_data/all_doc_labels.bin'
+    train_vecs_file_name = 'e:/dc/20ng_data/split/train_doc_vec_joint_200.bin'
+    train_labels_file_name = 'e:/dc/20ng_data/split/train_labels.bin'
+    test_vecs_file_name = 'e:/dc/20ng_data/split/test_doc_vec_joint_200.bin'
+    test_labels_file_name = 'e:/dc/20ng_data/split/test_labels.bin'
+    split_vectors(all_vecs_file_name, all_labels_file_name, train_vecs_file_name, train_labels_file_name,
+                  test_vecs_file_name, test_labels_file_name)
+
+
 def main():
     # do_filter_vecs()
-    do_filter_doc_entity_file()
+    # do_filter_doc_entity_file()
+    split_20ng_vecs()
 
 
 if __name__ == '__main__':
