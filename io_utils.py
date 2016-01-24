@@ -1,6 +1,17 @@
 import numpy as np
 
 
+def load_words_dict_to_list(file_name):
+    fin = open(file_name, 'rb')
+    line = fin.readline()
+    print line
+    words = list()
+    for line in fin:
+        words.append(line.strip().split('\t')[0])
+    fin.close()
+    return words
+
+
 def load_vec_list_file(vec_file_name):
     fin = open(vec_file_name, 'rb')
     x = np.fromfile(fin, np.int32, 2)

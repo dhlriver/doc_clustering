@@ -1,48 +1,5 @@
 import numpy
-import os
-import random
-
-
-def split_20ng_data(dir_path, train_path_list_file, train_label_list_file,
-                    test_path_list_file, test_label_list_file):
-    fout0 = open(train_path_list_file, 'wb')
-    fout1 = open(test_path_list_file, 'wb')
-    train_label_cnts = list()
-    train_doc_cnt = 0
-    test_label_cnts = list()
-    test_doc_cnt = 0
-    for f in os.listdir(dir_path):
-        cur_path = os.path.join(dir_path, f)
-        if os.path.isdir(cur_path):
-            train_cnt = 0
-            test_cnt = 0
-            for f1 in os.listdir(cur_path):
-                cur_path1 = os.path.join(cur_path, f1)
-                if os.path.isfile(cur_path1):
-                    rnd_val = random.randint(1, 10)
-                    if rnd_val == 1:
-                        fout1.write(cur_path1 + '\n')
-                        test_cnt += 1
-                    else:
-                        fout0.write(cur_path1 + '\n')
-                        train_cnt += 1
-            train_doc_cnt += train_cnt
-            test_doc_cnt += test_cnt
-            train_label_cnts.append(train_cnt)
-            test_label_cnts.append(test_cnt)
-    fout0.close()
-    fout1.close()
-
-    def write_label_file(num_docs, label_cnts, dst_file_name):
-        fout = open(dst_file_name, 'wb')
-        numpy.array([num_docs], dtype=numpy.int32).tofile(fout)
-        for label, label_cnt in enumerate(label_cnts):
-            labels = numpy.ones(label_cnt, dtype=numpy.int32) * label
-            labels.tofile(fout)
-        fout.close()
-
-    write_label_file(train_doc_cnt, train_label_cnts, train_label_list_file)
-    write_label_file(test_doc_cnt, test_label_cnts, test_label_list_file)
+from array import array
 
 
 def load_entity_dict(dict_file_name):
@@ -87,30 +44,72 @@ def gen_20ng_doc_entity_list(entity_dict_file_name, raw_doc_entity_file_name,
     fout.close()
 
 
-def gen_20ng_path_label_file(dir_path, dst_path_list_file, dst_label_file):
-    fout0 = open(dst_path_list_file, 'wb')
-    label_cnts = list()
-    doc_cnt = 0
-    for f in os.listdir(dir_path):
-        cur_path = os.path.join(dir_path, f)
-        if os.path.isdir(cur_path):
-            cnt = 0
-            for f1 in os.listdir(cur_path):
-                cur_path1 = os.path.join(cur_path, f1)
-                if os.path.isfile(cur_path1):
-                    fout0.write(cur_path1 + '\n')
-                    cnt += 1
-            doc_cnt += cnt
-            label_cnts.append(cnt)
-    fout0.close()
+def get_edge_list_from_clique(entity_list):
+    edge_list = list()
+    for i in range(len(entity_list)):
+        for j in range(i + 1, len(entity_list)):
+            va = entity_list[i]
+            vb = entity_list[j]
+            if va > vb:
+                va = entity_list[j]
+                vb = entity_list[i]
+            edge_list.append(array('i', [va, vb]))
+    return edge_list
 
-    fout1 = open(dst_label_file, 'wb')
-    numpy.array([doc_cnt], dtype=numpy.int32).tofile(fout1)
-    for label, label_cnt in enumerate(label_cnts):
-        labels = numpy.ones(label_cnt, dtype=numpy.int32) * label
-        labels.tofile(fout1)
-    fout1.close()
 
+###############################################################
+# get entity edges from entity cliques
+
+def get_entity_edges(entity_dict, raw_entity_clique_file_name):
+    entity_edge_list = list()
+    fin = open(raw_entity_clique_file_name, 'rb')
+    for line in fin:
+        vals = line.strip().split('\t')
+        entity_list = list()
+        for entity_name in vals:
+            entity_idx = entity_dict.get(entity_name, -1)
+            # if entity_idx != -1:
+            #     print(entity_name + '\t' + str(entity_idx))
+            if (entity_idx != -1) and (entity_idx not in entity_list):
+                entity_list.append(entity_idx)
+
+        tmp_edge_list = get_edge_list_from_clique(entity_list)
+        entity_edge_list += tmp_edge_list
+    fin.close()
+
+    return entity_edge_list
+
+
+def to_weighted_edges(edge_list):
+    edge_list.sort()
+    pre_edge = None
+    cur_weight_edge = None
+    weight_edge_list = list()
+    for edge in edge_list:
+        if pre_edge and edge == pre_edge:
+            cur_weight_edge[2] += 1
+        else:
+            cur_weight_edge = array('i', [edge[0], edge[1], 1])
+            weight_edge_list.append(cur_weight_edge)
+        pre_edge = edge
+    return weight_edge_list
+
+
+def gen_entity_edge_list_from_cliques(entity_dict_file_name, raw_entity_cliques_file_name,
+                                      dst_weighted_edge_list_file_name):
+    entity_dict = load_entity_dict(entity_dict_file_name)
+    entity_edges = get_entity_edges(entity_dict, raw_entity_cliques_file_name)
+    weighted_entity_edges = to_weighted_edges(entity_edges)
+
+    fout = open(dst_weighted_edge_list_file_name, 'wb')
+    fout.write('%d\t%d\t%d\n' % (len(entity_dict), len(entity_dict), len(weighted_entity_edges)))
+    for edge in weighted_entity_edges:
+        fout.write('%d\t%d\t%d\n' % (edge[0], edge[1], edge[2]))
+    fout.close()
+
+
+###################################################################
+# the jobs
 
 def do_gen_20ng_doc_entity_list():
     entity_dict_file_name = 'e:/dc/20ng_bydate/entity_names.txt'
@@ -133,48 +132,30 @@ def do_gen_test_20ng_doc_entity_list():
     gen_20ng_doc_entity_list(entity_dict_file_name, raw_doc_entity_file_name, dst_doc_entity_file_name)
 
 
-def do_split_20ng_data():
-    dir_path = 'e:/dc/20_newsgroups'
-    train_path_list_file = 'e:/dc/20ng_data/train_file_list.txt'
-    train_label_list_file = 'e:/dc/20ng_data/train_labels.bin'
-    test_path_list_file = 'e:/dc/20ng_data/test_file_list.txt'
-    test_label_list_file = 'e:/dc/20ng_data/test_labels.bin'
-    split_20ng_data(dir_path, train_path_list_file, train_label_list_file,
-                    test_path_list_file, test_label_list_file)
-
-
-def do_gen_20ng_path_label_file():
-    dir_path = 'e:/dc/20_newsgroups'
-    dst_path_list_file = 'e:/dc/20ng_data/all_doc_path_list.txt'
-    dst_label_file = 'e:/dc/20ng_data/all_doc_labels.bin'
-    gen_20ng_path_label_file(dir_path, dst_path_list_file, dst_label_file)
-    # fin = open(dst_label_file, 'rb')
-    # num_docs = numpy.fromfile(fin, dtype=numpy.int32, count=1)
-    # print num_docs
-    # labels = numpy.fromfile(fin, dtype=numpy.int32, count=num_docs)
-    # print labels
-    # fin.close()
+def job_gen_entity_edge_list_from_cliques():
+    entity_dict_file_name = 'e:/dc/20ng_bydate/entity_names.txt'
+    raw_entity_clique_file_name = 'e:/dc/20ng_bydate/entity_cliques_raw.txt'
+    dst_weighted_edge_list_file_name = 'e:/dc/20ng_bydate/weighted_entity_edge_list.txt'
+    gen_entity_edge_list_from_cliques(entity_dict_file_name, raw_entity_clique_file_name,
+                                      dst_weighted_edge_list_file_name)
 
 
 def main():
     # do_gen_20ng_path_label_file()
-    # do_split_20ng_data()
-    do_gen_20ng_doc_entity_list()
+    # do_gen_20ng_doc_entity_list()
     # do_gen_train_20ng_doc_entity_list()
     # do_gen_test_20ng_doc_entity_list()
+    job_gen_entity_edge_list_from_cliques()
 
 
 def test():
-    fin = open('e:/dc/20ng_data/doc_entities.bin', 'rb')
-    head_vals = numpy.fromfile(fin, numpy.int32, 2)
-    print head_vals
-    num_entities = numpy.fromfile(fin, numpy.int32, 1)
-    print num_entities
-    entities = numpy.fromfile(fin, numpy.int32, num_entities)
-    cnts = numpy.fromfile(fin, numpy.int32, num_entities)
-    print entities
-    print cnts
-    fin.close()
+    f0 = open('e:/dc/20ng_bydate/weighted_entity_edge_list.txt', 'rb')
+    f1 = open('e:/dc/20ng_bydate/weighted_entity_edge_list_tmp.txt', 'rb')
+    for idx, (line0, line1) in enumerate(zip(f0, f1)):
+        if line0 != line1:
+            print idx, 'not equal'
+    f0.close()
+    f1.close()
 
 if __name__ == '__main__':
     # test()

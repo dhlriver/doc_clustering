@@ -18,8 +18,8 @@ def split_vectors():
 def make_dataset_info():
     dir_path = 'e:/dc/20_newsgroups'
     dst_path_list_file = 'e:/dc/20ng_data/all_doc_path_list.txt'
-    dst_class_labels_file = 'e:/dc/20ng_data/all_doc_class_labels.bin'
     dst_split_labels_file = 'e:/dc/20ng_data/split/doc_split_labels.bin'
+    dst_class_labels_file = 'e:/dc/20ng_data/all_doc_class_labels.bin'
     dst_train_labels_file = 'e:/dc/20ng_data/split/train_labels.bin'
     dst_test_labels_file = 'e:/dc/20ng_data/split/test_labels.bin'
     data_set_20ng.index_20ng_dataset(dir_path, dst_path_list_file, dst_class_labels_file,
@@ -48,9 +48,21 @@ def split_and_classify():
     # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_dbow_doc_vec_100.bin'
     # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_dbow_doc_vec_100.bin'
 
-    all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_200.bin'
-    train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_200.bin'
-    test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_200.bin'
+    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_300.bin'
+    # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_300.bin'
+    # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_300.bin'
+
+    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_100.bin'
+    # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_100.bin'
+    # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_100.bin'
+
+    all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_100_test.bin'
+    train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_100_test.bin'
+    test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_100_test.bin'
+
+    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_mixed_100.bin'
+    # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_mixed_100.bin'
+    # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_mixed_100.bin'
 
     split_labels_file_name = 'e:/dc/20ng_bydate/doc_split_labels.bin'
     # data_set_20ng.split_vecs(all_vecs_file_name, split_labels_file_name,
@@ -58,7 +70,7 @@ def split_and_classify():
     train_label_file = 'e:/dc/20ng_bydate/train_labels.bin'
     test_label_file = 'e:/dc/20ng_bydate/test_labels.bin'
     doc_classification.doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,
-                                          test_label_file, 0, 100)
+                                          test_label_file, 0, -1)
 
 
 def test():

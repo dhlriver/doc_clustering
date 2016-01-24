@@ -3,27 +3,6 @@ import sklearn.cluster
 from sklearn.metrics.cluster import normalized_mutual_info_score
 
 
-def test_clustering():
-    x = numpy.zeros((60, 2))
-    # print x
-    mean0 = [0, 0]
-    cov0 = [[0.1, 0], [0, 0.21]]
-    x[0:30] = numpy.random.multivariate_normal(mean0, cov0, 30)
-    # print x
-    mean0 = [1, 1]
-    cov0 = [[0.51, 0], [0, 0.51]]
-    x[30:60] = numpy.random.multivariate_normal(mean0, cov0, 30)
-    # print x
-    estimator = sklearn.cluster.KMeans(n_clusters=2, n_jobs=4)
-    estimator.fit(x)
-    labels = numpy.zeros(60).astype(numpy.int32)
-    labels[30:] = numpy.ones(30).astype(numpy.int32)
-    print labels
-    print estimator.labels_
-    nmi = normalized_mutual_info_score(labels, estimator.labels_)
-    print nmi
-
-
 def write_labels(labels, dst_file_name):
     fout = open(dst_file_name, 'wb')
     cnt = 0
