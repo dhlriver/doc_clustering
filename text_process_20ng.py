@@ -1,5 +1,6 @@
 import numpy as np
 import io_utils
+# TODO use text_process_common
 
 
 def get_num_lines(file_name):

@@ -1,9 +1,39 @@
 import numpy as np
 import io_utils
 import heapq
+import scipy.spatial
 
 
-def close_words():
+def close_words_of_entities():
+    word_dict_file_name = 'e:/dc/20ng_bydate/words_dict.txt'
+    word_vec_file_name = 'e:/dc/20ng_bydate/vecs/word_vecs_joint_oml_100.bin'
+    entity_dict_file_name = 'e:/dc/20ng_bydate/entity_names.txt'
+    entity_vecs_file_name = 'e:/dc/20ng_bydate/vecs/entity_vecs_joint_oml_100.bin'
+
+    word_vecs = io_utils.load_vec_list_file(word_vec_file_name)
+    words = io_utils.load_words_dict_to_list(word_dict_file_name)
+    entity_vecs = io_utils.load_vec_list_file(entity_vecs_file_name)
+    entities = io_utils.load_entity_dict(entity_dict_file_name)
+    print len(entity_vecs)
+    print len(entities)
+
+    def show_close_words(entity_idx):
+        print 'entity: ', entities[entity_idx]
+        entity_vec = entity_vecs[entity_idx]
+        dist_list = list()
+        for word_idx in xrange(len(word_vecs)):
+            # dist = np.dot(entity_vec, word_vecs[word_idx])
+            dist = scipy.spatial.distance.cosine(entity_vec, word_vecs[word_idx])
+            dist_list.append((dist, word_idx))
+        # dist_list.sort(key=lambda tup: tup[0])
+        closest_words = heapq.nsmallest(100, dist_list, key=lambda tup: tup[0])
+        for dist, idx in closest_words:
+            print dist, words[idx], idx
+
+    show_close_words(25304)
+
+
+def close_words_of_docs():
     word_dict_file_name = 'e:/dc/20ng_bydate/words_dict.txt'
     words = io_utils.load_words_dict_to_list(word_dict_file_name)
 
@@ -29,7 +59,8 @@ def close_words():
 
 
 def main():
-    close_words()
+    # close_words_of_docs()
+    close_words_of_entities()
 
 
 if __name__ == '__main__':

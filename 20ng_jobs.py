@@ -48,25 +48,21 @@ def split_and_classify():
     # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_dbow_doc_vec_100.bin'
     # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_dbow_doc_vec_100.bin'
 
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_300.bin'
-    # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_300.bin'
-    # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_300.bin'
-
     # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_100.bin'
     # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_100.bin'
     # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_100.bin'
 
-    all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_100_test.bin'
-    train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_100_test.bin'
-    test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_100_test.bin'
+    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_200.bin'
+    # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_200.bin'
+    # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_200.bin'
 
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/all_doc_vec_joint_oml_mixed_100.bin'
-    # train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_doc_vec_joint_oml_mixed_100.bin'
-    # test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_doc_vec_joint_oml_mixed_100.bin'
+    all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/doc_vecs_0.bin'
+    train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train_dedw_vecs.bin'
+    test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test_dedw_vecs.bin'
 
     split_labels_file_name = 'e:/dc/20ng_bydate/doc_split_labels.bin'
-    # data_set_20ng.split_vecs(all_vecs_file_name, split_labels_file_name,
-    #                          train_vecs_file_name, test_vecs_file_name)
+    data_set_20ng.split_vecs(all_vecs_file_name, split_labels_file_name,
+                             train_vecs_file_name, test_vecs_file_name)
     train_label_file = 'e:/dc/20ng_bydate/train_labels.bin'
     test_label_file = 'e:/dc/20ng_bydate/test_labels.bin'
     doc_classification.doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,

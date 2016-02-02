@@ -1,6 +1,16 @@
 import numpy as np
 
 
+# TODO merge with load words dict
+def load_entity_dict(file_name):
+    fin = open(file_name, 'rb')
+    entities = list()
+    for line in fin:
+        entities.append(line.strip().split('\t')[0])
+    fin.close()
+    return entities
+
+
 def load_words_dict_to_list(file_name):
     fin = open(file_name, 'rb')
     line = fin.readline()
