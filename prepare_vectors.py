@@ -1,5 +1,5 @@
 import numpy as np
-import io_utils
+import ioutils
 import random
 
 label_list = ['africa', 'americas', 'asia', 'europe', 'middleeast']
@@ -118,8 +118,8 @@ def filter_doc_entity_file(entity_list_file_name, full_doc_entity_file_name, lab
 
 def split_vectors(all_vec_file_name, all_labels_file_name, dst_train_vec_file_name,
                   dst_train_labels_file_name, dst_test_vec_file_name, dst_test_labels_file_name):
-    all_vec_list = io_utils.load_vec_list_file(all_vec_file_name)
-    all_labels = io_utils.load_labels_file(all_labels_file_name)
+    all_vec_list = ioutils.load_vec_list_file(all_vec_file_name)
+    all_labels = ioutils.load_labels_file(all_labels_file_name)
 
     train_vec_list = list()
     train_labels = list()
@@ -156,6 +156,35 @@ def split_vectors(all_vec_file_name, all_labels_file_name, dst_train_vec_file_na
     save_labels(test_labels, dst_test_labels_file_name)
 
 
+def averaging_vecs(doc_word_file, word_vecs_file, dst_file):
+    word_vecs = ioutils.load_vec_list_file(word_vecs_file)
+    dim = len(word_vecs[0])
+
+    fin = open(doc_word_file, 'rb')
+    num_left, num_right = np.fromfile(fin, np.int32, 2)
+    print num_left, num_right
+    fout = open(dst_file, 'wb')
+    np.asarray([num_left, dim], np.int32).tofile(fout)
+    for i in xrange(num_left):
+        num_vertices = np.fromfile(fin, np.int32, 1)
+
+        indices = np.fromfile(fin, np.int32, num_vertices)
+        weights = np.fromfile(fin, np.uint16, num_vertices)
+
+        vec = np.zeros(dim, np.float32)
+        sum_weights = np.sum(weights)
+        for idx, w in zip(indices, weights):
+            vec += word_vecs[idx] * w
+        vec /= sum_weights
+        vec.tofile(fout)
+
+        if i % 10000 == 10000 - 1:
+            print i + 1
+        # break  # TODO
+    fout.close()
+    fin.close()
+
+
 def do_filter_vecs():
     vec_list_file_name = 'e:/dc/nyt/vecs/es_doc_vec_64.bin'
     label_list_file_name = 'e:/dc/nyt/doc_label_list.txt'
@@ -184,10 +213,55 @@ def split_20ng_vecs():
                   test_vecs_file_name, test_labels_file_name)
 
 
+def gen_20ng_doc_vecs_by_averaging():
+    doc_word_file = 'e:/dc/20ng_bydate/all_docs_dw_net_short.bin'
+    word_vecs_file = 'e:/dc/20ng_bydate/vecs/word_vecs.bin'
+    dst_file = 'e:/dc/20ng_bydate/vecs/doc_vecs_av.bin'
+    averaging_vecs(doc_word_file, word_vecs_file, dst_file)
+
+
+def gen_el_doc_vecs_by_averaging():
+    # doc_word_file = 'e:/dc/el/tac_2014_train_docs_bow.bin'
+    doc_word_file = 'e:/dc/el/wiki_bow.bin'
+    word_vecs_file = 'e:/dc/el/vecs/word_vecs.bin'
+    dst_file = 'e:/dc/el/vecs/wiki_vecs_av.bin'
+    averaging_vecs(doc_word_file, word_vecs_file, dst_file)
+
+
+def merge_vecs():
+    year = 2010
+    part = 'train'
+    method = 3
+
+    # vecs_file0 = 'e:/dc/el/vecs/tac_' + file_tag + '_entity_vecs.bin'
+    # vecs_file1 = 'e:/dc/el/vecs/tac_' + file_tag + '_dw_vecs.bin'
+    # dst_file = 'e:/dc/el/vecs/tac_' + file_tag + '_vecs.bin'
+
+    vecs_file0 = 'e:/dc/el/vecs/%d/%s_%d_de_vecs.bin' % (year, part, method)
+    vecs_file1 = 'e:/dc/el/vecs/%d/%s_%d_dw_vecs.bin' % (year, part, method)
+    dst_file = 'e:/dc/el/vecs/%d/%s_%d_vecs.bin' % (year, part, method)
+
+    vecs0 = ioutils.load_vec_list_file(vecs_file0)
+    vecs1 = ioutils.load_vec_list_file(vecs_file1)
+    if len(vecs0) != len(vecs1):
+        print 'number of vectors not equal!'
+        return
+
+    fout = open(dst_file, 'wb')
+    np.asarray([len(vecs0), len(vecs0[0]) + len(vecs1[0])], np.int32).tofile(fout)
+    for i in xrange(len(vecs0)):
+        vecs0[i].tofile(fout)
+        vecs1[i].tofile(fout)
+    fout.close()
+
+
 def main():
     # do_filter_vecs()
     # do_filter_doc_entity_file()
-    split_20ng_vecs()
+    # split_20ng_vecs()
+    # gen_20ng_doc_vecs_by_averaging()
+    # gen_el_doc_vecs_by_averaging()
+    merge_vecs()
 
 
 if __name__ == '__main__':

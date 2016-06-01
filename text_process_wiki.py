@@ -1,13 +1,15 @@
 import re
+import os
 import numpy as np
 from time import time
 from array import array
-import text_process_common
+import ioutils
+import textutils
 
 
 def gen_legal_wid_list_file():
     # mid_alias_cnt_file_name = 'd:/data/el/merged_fb_mid_alias_cnt.txt'
-    filter_mid_file_name = 'e:/el/tmpres/freebase/filter_mids_10_8.bin'
+    filter_mid_file_name = 'e:/el/res/freebase/filter_mids_10_8.bin'
     mid_wid_file_name = 'd:/data/el/mid_to_wid_full_ord_wid.txt'
     dst_wid_file_name = 'e:/dc/el/legal_wid_list.bin'
     print 'loading filter mids ...'
@@ -15,10 +17,8 @@ def gen_legal_wid_list_file():
     num_mids = np.fromfile(fin, '>i4', 1)
     filter_mid_set = set()
     for i in xrange(num_mids):
-        mid = array('B')
-        mid.fromfile(fin, 8)
-        smid = mid.tostring().strip()
-        filter_mid_set.add(smid)
+        mid = ioutils.read_str_with_fixed_len(fin, 8)
+        filter_mid_set.add(mid)
     fin.close()
     print 'done.'
 
@@ -42,11 +42,11 @@ def gen_legal_wid_list_file():
     print 'done.'
 
 
-def gen_line_docs_file():
+def gen_line_docs_file_wiki():
     wiki_texts_file_name = 'e:/el/tmpres/wiki/enwiki-20150403-text-with-links-no-title-main_cleaned.txt'
+    legal_wid_file_name = 'e:/dc/el/legal_wid_list.bin'
     dst_line_docs_file_name = 'e:/dc/el/wiki_lines.txt'
     page_ids_file_name = 'e:/dc/el/wiki_page_ids.bin'
-    legal_wid_file_name = 'e:/dc/el/legal_wid_list.bin'
 
     fin = open(legal_wid_file_name, 'rb')
     num_wids = np.fromfile(fin, np.int32, 1)
@@ -77,14 +77,13 @@ def gen_line_docs_file():
                 text += ' <s> '
             text += line.strip()
 
+        while legal_wid_idx < len(legal_wids) and legal_wids[legal_wid_idx] < wid:
+            legal_wid_idx += 1
+        if legal_wid_idx == len(legal_wids):
+            break
         if legal_wids[legal_wid_idx] != wid:
-            if legal_wids[legal_wid_idx] < wid:
-                legal_wid_idx += 1
             title = fin.readline()
-            # print wid
             continue
-
-        legal_wid_idx += 1
 
         id_list.append(wid)
         if len(id_list) == 1000000:
@@ -113,61 +112,160 @@ def gen_line_docs_file():
 
 def gen_word_cnts_dict():
     tokenized_line_docs_file_name = 'e:/dc/el/wiki_lines_tokenized.txt'
-    dst_file_name = 'e:/dc/el/wiki_word_cnts_lc.txt'
-    text_process_common.gen_word_cnts_dict_for_line_docs(tokenized_line_docs_file_name, dst_file_name)
-    dst_file_name = 'e:/dc/el/wiki_word_cnts_with_case.txt'
-    text_process_common.gen_word_cnts_dict_for_line_docs(tokenized_line_docs_file_name, dst_file_name, to_lower=False)
+    dst_file_name = 'e:/dc/el/wiki/wiki_word_cnts_lc.txt'
+    textutils.gen_word_cnts_dict_for_line_docs(tokenized_line_docs_file_name, dst_file_name)
+    dst_file_name = 'e:/dc/el/wiki/wiki_word_cnts_with_case.txt'
+    textutils.gen_word_cnts_dict_for_line_docs(tokenized_line_docs_file_name, dst_file_name, to_lower=False)
 
 
 def gen_words_dict_wiki():
-    word_cnt_file_name = 'e:/dc/el/wiki_word_cnts.txt'
+    word_cnt_file_name = 'e:/dc/el/wiki/wiki_word_cnts_lc.txt'
     stop_words_file_name = 'e:/common_res/stopwords.txt'
-    dst_file_name = 'e:/dc/el/words_dict_proper.txt'
-    text_process_common.gen_proper_words_dict_with_cnts(word_cnt_file_name, stop_words_file_name, 4, 20,
-                                                        dst_file_name)
+    dst_file_name = 'e:/dc/el/wiki/words_dict_proper.txt'
+    textutils.gen_proper_words_dict_with_cnts(word_cnt_file_name, stop_words_file_name, 4, 20,
+                                              dst_file_name)
 
 
 def gen_lowercase_token_file_wiki():
-    tokenized_line_docs_file_name = 'e:/dc/el/wiki_lines_tokenized.txt'
-    proper_word_cnts_dict_file = 'e:/dc/el/words_dict_proper.txt'
+    tokenized_line_docs_file_name = 'e:/dc/el/wiki/wiki_lines_tokenized.txt'
+    proper_word_cnts_dict_file = 'e:/dc/el/wiki/words_dict_proper.txt'
     max_word_len = 20
-    dst_file_name = 'e:/dc/el/wiki_lines_tokenized_lc.txt'
-    text_process_common.gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dict_file,
-                                                 max_word_len, dst_file_name)
+    dst_file_name = 'e:/dc/el/wiki/wiki_lines_tokenized_lc.txt'
+    textutils.gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dict_file,
+                                       max_word_len, dst_file_name)
 
 
 def gen_bow_wiki():
-    line_docs_file_name = 'e:/dc/el/wiki_lines_tokenized_lc.txt'
-    proper_word_cnts_dict_file = 'e:/dc/el/words_dict_proper.txt'
-    dst_bow_docs_file_name = 'e:/dc/el/wiki_bow.bin'
-    text_process_common.line_docs_to_bow(line_docs_file_name, proper_word_cnts_dict_file, dst_bow_docs_file_name)
+    line_docs_file_name = 'e:/dc/el/wiki/wiki_lines_tokenized_lc.txt'
+    proper_word_cnts_dict_file = 'e:/dc/el/wiki/words_dict_proper.txt'
+    dst_bow_docs_file_name = 'e:/dc/el/wiki/wiki_bow.bin'
+    # text_process_common.line_docs_to_bow(line_docs_file_name, proper_word_cnts_dict_file, dst_bow_docs_file_name)
+
+    dst_word_cnts_file = 'e:/dc/el/wiki/word_cnts.bin'
+    textutils.gen_word_cnts_file_from_bow_file(dst_bow_docs_file_name, dst_word_cnts_file)
 
 
-def main():
-    print 'main'
-    # gen_legal_wid_list_file()
-    # gen_line_docs_file()
-    gen_word_cnts_dict()
-    # gen_words_dict_wiki()
-    # gen_lowercase_token_file_wiki()
-    # gen_bow_wiki()
+def tac_el_job_14train():
+    docs_dir = r'D:\data\el\LDC2015E20_EDL_2014\data\training\source_documents'
+    line_docs_file = 'e:/dc/el/tac/tac_2014_train_docs_text.txt'
+    docs_list_file = 'e:/dc/el/tac/tac_2014_train_docs_list.txt'
+    # gen_line_docs_file_tac(docs_dir, line_docs_file, docs_list_file)
+
+    tokenized_line_docs_file = 'e:/dc/el/tac/tac_2014_train_docs_text_tokenized.txt'
+    proper_word_cnts_dict_file = 'e:/dc/el/wiki/words_dict_proper.txt'
+    max_word_len = 20
+    tokenized_line_docs_lc_file = 'e:/dc/el/tac/tac_2014_train_docs_text_tokenized_lc.txt'
+    textutils.gen_lowercase_token_file(tokenized_line_docs_file, proper_word_cnts_dict_file,
+                                       max_word_len, tokenized_line_docs_lc_file)
+
+    bow_docs_file = 'e:/dc/el/tac/tac_2014_train_docs_bow.bin'
+    # text_process_common.line_docs_to_bow(tokenized_line_docs_lc_file, proper_word_cnts_dict_file, bow_docs_file)
+
+
+def tac_el_job_14eval():
+    docs_dir = r'D:\data\el\LDC2015E20_EDL_2014\data\eval\source_documents'
+    line_docs_file = 'e:/dc/el/tac/tac_2014_eval_docs_text.txt'
+    docs_list_file = 'e:/dc/el/tac/tac_2014_eval_docs_list.txt'
+    # gen_line_docs_file_tac(docs_dir, line_docs_file, docs_list_file)
+
+    tokenized_line_docs_file = 'e:/dc/el/tac/tac_2014_eval_docs_text_tokenized.txt'
+    proper_word_cnts_dict_file = 'e:/dc/el/wiki/words_dict_proper.txt'
+    max_word_len = 20
+    tokenized_line_docs_lc_file = 'e:/dc/el/tac/tac_2014_eval_docs_text_tokenized_lc.txt'
+    # text_process_common.gen_lowercase_token_file(tokenized_line_docs_file, proper_word_cnts_dict_file,
+    #                                              max_word_len, tokenized_line_docs_lc_file)
+
+    bow_docs_file = 'e:/dc/el/tac/tac_2014_eval_docs_bow.bin'
+    textutils.line_docs_to_bow(tokenized_line_docs_lc_file, proper_word_cnts_dict_file, bow_docs_file)
+
+
+def clean_line_wiki_docs_file():
+    line_docs_file = 'e:/dc/el/wiki/wiki_lines.txt'
+    dst_file = 'e:/dc/el/wiki/wiki-docs.txt'
+    fin = open(line_docs_file, 'rb')
+    fout = open(dst_file, 'wb')
+    for i, line in enumerate(fin):
+        # line = line.replace(' <s> ', ' ')
+        line = re.sub(' <s> | \(\)', ' ', line)
+        fout.write(line)
+        # if i == 1000:
+        #     break
+        if (i + 1) % 10000 == 0:
+            print i + 1
+    fin.close()
+    fout.close()
+
+
+def split_line_docs():
+    lines_docs_file = 'e:/dc/el/wiki/wiki-docs.txt'
+    # lines_docs_file = 'e:/dc/el/wiki/tmp.txt'
+    num_files = 20
+    dst_files = list()
+    for i in xrange(num_files):
+        dst_files.append('e:/dc/el/wiki/wiki-docs-split/wiki-docs-%d.txt' % i)
+        # dst_files.append('e:/dc/el/wiki/wiki-docs-split/tmp-%d.txt' % i)
+    textutils.split_line_docs_file(lines_docs_file, dst_files)
 
 
 def test():
-    fin = open('e:/dc/el/wiki_bow.bin', 'rb')
-    params = np.fromfile(fin, np.int32, 2)
-    print params
-    num_words = np.fromfile(fin, np.int32, 1)
-    word_indices = np.fromfile(fin, np.int32, num_words)
-    word_cnts = np.fromfile(fin, np.uint16, num_words)
-    print num_words
-    print word_indices[:100]
-    print word_cnts[:100]
+    wiki_texts_file_name = 'e:/el/tmpres/wiki/enwiki-20150403-text-with-links-no-title-main_cleaned.txt'
+    dst_line_docs_file_name = 'e:/dc/el/wiki_lines.txt'
+    page_ids_file_name = 'e:/dc/el/wiki_page_ids.bin'
+    legal_wid_file_name = 'e:/dc/el/legal_wid_list.bin'
+
+    fin = open(legal_wid_file_name, 'rb')
+    num_wids = np.fromfile(fin, np.int32, 1)
+    print num_wids
+    legal_wids = np.fromfile(fin, np.int32, num_wids)
+    fin.close()
+
+    fin = open(wiki_texts_file_name, 'rb')
+    page_cnt = 0
+    written_page_cnt = 0
+    title = fin.readline()
+    legal_wid_idx = 0
+    while title:
+        page_cnt += 1
+        if page_cnt % 100000 == 100000 - 1:
+            print page_cnt + 1
+
+        wid = int(fin.readline().strip())
+        num_line = int(fin.readline().strip())
+        for i in xrange(num_line):
+            fin.readline()
+
+        while legal_wid_idx < len(legal_wids) and legal_wids[legal_wid_idx] < wid:
+            legal_wid_idx += 1
+        if legal_wid_idx == len(legal_wids) or legal_wids[legal_wid_idx] != wid:
+            title = fin.readline()
+            continue
+
+        if wid == 23235:
+            print 'hit', wid
+
+        written_page_cnt += 1
+        title = fin.readline()
+
+    print page_cnt, 'pages,', written_page_cnt, 'written'
     fin.close()
 
 
 if __name__ == '__main__':
     start_time = time()
-    main()
+
+    # gen_legal_wid_list_file()
+    # gen_line_docs_file_wiki()
+    # gen_word_cnts_dict()
+    # gen_words_dict_wiki()
+    # gen_lowercase_token_file_wiki()
+    # gen_bow_wiki()
+
+    # tac_el_job_14train()
+    # tac_el_job_10eval()
+    # tac_el_job()
+
+    # clean_line_wiki_docs_file()
+    split_line_docs()
+
     # test()
     print 'Elapsed time:', time() - start_time

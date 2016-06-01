@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn import svm
-from sklearn.metrics import f1_score
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 def load_features(file_name):
@@ -34,8 +33,10 @@ def doc_classification(train_vec_file, train_label_file, test_vec_file, test_lab
 
     test_x = load_features(test_vec_file)
     test_y = load_labels(test_label_file)
+    # print train_y[1000:1100]
+    # print test_y[1000:1100]
 
-    print train_x[0][:10]
+    print train_x[0][50:60]
 
     def trunc_vecs(vec_list):
         for idx, vec in enumerate(vec_list):
@@ -56,6 +57,8 @@ def doc_classification(train_vec_file, train_label_file, test_vec_file, test_lab
 
     y_pred = clf.predict(test_x)
     print 'accuracy', accuracy_score(test_y, y_pred)
+    print 'precision', precision_score(test_y, y_pred, average='macro')
+    print 'recall', recall_score(test_y, y_pred, average='macro')
     print 'macro f1', f1_score(test_y, y_pred, average='macro')
 
 

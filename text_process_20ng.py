@@ -1,5 +1,6 @@
 import numpy as np
-import io_utils
+import ioutils
+import textutils
 # TODO use text_process_common
 
 
@@ -77,7 +78,8 @@ def save_as_word_indices(doc_line, word_dict, bin_index_cnts_fout, indices_fout=
 
     np.array([len(doc_word_dict)], np.int32).tofile(bin_index_cnts_fout)
     np.array(doc_word_dict.keys(), np.int32).tofile(bin_index_cnts_fout)
-    np.array(doc_word_dict.values(), np.int32).tofile(bin_index_cnts_fout)
+    # np.array(doc_word_dict.values(), np.int32).tofile(bin_index_cnts_fout)
+    np.array(doc_word_dict.values(), np.uint16).tofile(bin_index_cnts_fout)
 
     if indices_fout:
         if len(word_indices) > 0:
@@ -110,35 +112,6 @@ def line_docs_to_net(line_docs_file_name, word_dict_file_name, dst_bin_file_name
         fout1.close()
 
 
-def line_docs_to_net_split(line_docs_file_name, doc_split_labels_file_name, word_dict_file_name,
-                           dst_train_file_name, dst_test_file_name):
-    word_dict = load_word_dict(word_dict_file_name)
-    split_labels = io_utils.load_labels_file(doc_split_labels_file_name)
-
-    fout0 = open(dst_train_file_name, 'wb')
-    fout1 = open(dst_test_file_name, 'wb')
-    fin = open(line_docs_file_name, 'rb')
-
-    num_docs = len(split_labels)
-    num_testing_docs = sum(split_labels)
-    num_training_docs = num_docs - num_testing_docs
-    print num_training_docs, 'training docs,', num_testing_docs, 'testing docs,', 'total:', num_docs
-
-    np.array([num_training_docs, len(word_dict)], np.int32).tofile(fout0)
-    np.array([num_testing_docs, len(word_dict)], np.int32).tofile(fout1)
-
-    for line_idx, line in enumerate(fin):
-        split_label = split_labels[line_idx]
-        if split_label == 0:  # training
-            save_as_word_indices(line, word_dict, fout0)
-        else:
-            save_as_word_indices(line, word_dict, fout1)
-
-    fin.close()
-    fout0.close()
-    fout1.close()
-
-
 def to_processed_docs_final(docs_file_name, dst_file_name):
     fin = open(docs_file_name, 'rb')
     fout = open(dst_file_name, 'wb')
@@ -157,33 +130,13 @@ def do_gen_word_dict():
 def all_line_docs_to_net():
     line_docs_file_name = 'e:/dc/20ng_bydate/doc_text_data.txt'
     word_dict_file_name = 'e:/dc/20ng_bydate/words_dict.txt'
-    dst_bin_file_name = 'e:/dc/20ng_bydate/all_docs_dw_net.bin'
+    # dst_bin_file_name = 'e:/dc/20ng_bydate/all_docs_dw_net.bin'
+    dst_dw_file_name = 'e:/dc/20ng_bydate/all_docs_dw_net_short.bin'
     dst_word_indices_doc_file_name = 'e:/dc/20ng_bydate/all_docs_wi.txt'
-    line_docs_to_net(line_docs_file_name, word_dict_file_name, dst_bin_file_name, dst_word_indices_doc_file_name)
+    # line_docs_to_net(line_docs_file_name, word_dict_file_name, dst_dw_file_name, dst_word_indices_doc_file_name)
 
-
-def do_line_docs_to_net_split():
-    line_docs_file_name = 'e:/dc/20ng_bydate/doc_text_data.txt'
-    split_labels_file_name = 'e:/dc/20ng_bydate/doc_split_labels.bin'
-    word_dict_file_name = 'e:/dc/20ng_bydate/words_dict.txt'
-    dst_train_file_name = 'e:/dc/20ng_bydate/train_docs_dw_net.bin'
-    dst_test_file_name = 'e:/dc/20ng_bydate/test_docs_dw_net.bin'
-    line_docs_to_net_split(line_docs_file_name, split_labels_file_name, word_dict_file_name,
-                           dst_train_file_name, dst_test_file_name)
-
-
-# def train_lines_doc_to_net():
-#     line_docs_file_name = 'e:/dc/20ng_data/split/train_doc_text.txt'
-#     word_dict_file_name = 'e:/dc/20ng_data/words_dict.txt'
-#     dst_bin_file_name = 'e:/dc/20ng_data/split/train_docs_dw_net.bin'
-#     line_docs_to_net(line_docs_file_name, word_dict_file_name, dst_bin_file_name)
-#
-#
-# def test_lines_doc_to_net():
-#     line_docs_file_name = 'e:/dc/20ng_data/split/test_doc_text.txt'
-#     word_dict_file_name = 'e:/dc/20ng_data/words_dict.txt'
-#     dst_bin_file_name = 'e:/dc/20ng_data/split/test_docs_dw_net.bin'
-#     line_docs_to_net(line_docs_file_name, word_dict_file_name, dst_bin_file_name)
+    word_cnts_file_for_ns = 'e:/dc/20ng_bydate/word_cnts.bin'
+    textutils.gen_word_cnts_file_from_bow_file(dst_dw_file_name, word_cnts_file_for_ns)
 
 
 def process_docs_final():
@@ -202,18 +155,16 @@ def main():
 
 
 def test():
-    fin = open('e:/dc/20ng_data/all_docs_dw_net.bin', 'rb')
-    vals = np.fromfile(fin, np.int32, 2)
-    print vals
-    num = np.fromfile(fin, np.int32, 1)
-    print num
-    words = np.fromfile(fin, np.int32, num)
-    cnts = np.fromfile(fin, np.int32, num)
-    print words
-    print cnts
+    words = ioutils.load_words_dict_to_list('e:/dc/20ng_bydate/words_dict.txt')
+    fin = open('e:/dc/20ng_bydate/word_cnts.bin', 'rb')
+    num_words = np.fromfile(fin, np.int32, 1)
+    print num_words, 'words'
+    cnts = np.fromfile(fin, np.int32, num_words)
+    for idx, cnt in enumerate(cnts[:100]):
+        print words[idx], cnt
     fin.close()
 
 
 if __name__ == '__main__':
-    # test()
-    main()
+    test()
+    # main()
