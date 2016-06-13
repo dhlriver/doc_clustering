@@ -149,8 +149,8 @@ def gen_lowercase_token_file_nyt():
 
 
 def gen_dw_nyt():
-    min_occurrance = 40
-    line_docs_file_name = 'e:/dc/nyt-world-full/processed/docs_tokenized_lc.txt'
+    min_occurrance = 30
+    line_docs_file_name = 'e:/dc/nyt-world-full/processed/test/docs_tokenized_lc.txt'
     proper_word_cnts_dict_file = 'e:/dc/nyt-world-full/processed/words_dict_proper.txt'
     dst_bow_docs_file_name = 'e:/dc/nyt-world-full/processed/bin/dw-%d.bin' % min_occurrance
     textutils.line_docs_to_bow(line_docs_file_name, proper_word_cnts_dict_file, min_occurrance, dst_bow_docs_file_name)
@@ -237,13 +237,13 @@ def gen_bow_file():
 
 
 if __name__ == '__main__':
-    nyt_dataset_merge()
+    # nyt_dataset_merge()
     # dataset_statistics()
 
     # gen_word_cnts_dict()
     # gen_words_dict_nyt()
     # gen_lowercase_token_file_nyt()
-    # gen_dw_nyt()
+    gen_dw_nyt()
 
     # setup_entity_pairs_file()
     # gen_bow_file()

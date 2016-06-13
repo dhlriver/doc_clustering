@@ -5,6 +5,16 @@ import scipy.spatial
 import math
 
 
+def __load_id_title_dict(id_title_file):
+    fin = open(id_title_file, 'rb')
+    id_title = dict()
+    for line in fin:
+        vals = line.strip().split('\t')
+        id_title[int(vals[0])] = vals[1]
+    fin.close()
+    return id_title
+
+
 def close_vecs(vecs, dst_vec, k=10):
     num_vecs = len(vecs)
     top_list = [(-1, -1) for _ in xrange(k)]
@@ -152,13 +162,23 @@ def close_20ng_docs():
 
 
 def close_wiki_pages():
+    dst_wid = 534366
+    wid_title_file = 'e:/el/tmpres/wiki/enwiki-20150403-id-title-list.txt'
+    wid_title_dict = __load_id_title_dict(wid_title_file)
+
     wiki_page_id_file = 'e:/dc/el/wiki/wiki_page_ids.bin'
     fin = open(wiki_page_id_file, 'rb')
     num_pages = np.fromfile(fin, np.int32, 1)
     page_ids = np.fromfile(fin, np.int32, num_pages)
     fin.close()
 
-    wiki_vec_file = 'e:/dc/el/vecs/wiki_de_vecs.bin'
+    pos = 0
+    for i, wid in enumerate(page_ids):
+        if wid == dst_wid:
+            pos = i
+            break
+
+    wiki_vec_file = 'e:/dc/el/vecs/wiki_dedw_vecs_1.bin'
     # fin = open(wiki_vec_file, 'rb')
     # num_vecs, dim = np.fromfile(fin, np.int32, 2)
     # wiki_vecs = np.zeros((num_vecs, 50), np.float32)
@@ -168,9 +188,9 @@ def close_wiki_pages():
     # fin.close()
     wiki_vecs = ioutils.load_vec_list_file(wiki_vec_file)
 
-    top_list = close_vecs(wiki_vecs, wiki_vecs[0])
+    top_list = close_vecs(wiki_vecs, wiki_vecs[pos])
     for idx, dist in top_list:
-        print page_ids[idx], dist
+        print wid_title_dict[page_ids[idx]], dist
 
 
 def close_wiki_pages_el_doc():
@@ -294,5 +314,14 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import matplotlib.pyplot as plt
+
+    plt.plot(range(10))
+    plt.savefig('e:/tmp0.eps')
+    plt.close()
+    # plt.figure()
+    plt.plot(range(5), 'ro-')
+    plt.savefig('e:/tmp1.eps')
+    # plt.show()
+    # main()
     # test()

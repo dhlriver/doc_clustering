@@ -214,10 +214,10 @@ def test():
 
 def main():
     year = 2010
-    part = 'train'
-    method = 3
+    part = 'eval'
+    method = 4
     expand = ''
-    # expand = '_exp'
+    expand = '_exp'
 
     gold_label_file = ''
     if year == 2014 and part == 'train':
@@ -246,6 +246,6 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    simple_link()
+    main()
+    # simple_link()
     # test()

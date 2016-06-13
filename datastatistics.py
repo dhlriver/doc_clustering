@@ -66,8 +66,9 @@ def dataset_statistics_nyt():
     ner_result_file_test = 'e:/dc/nyt-world-full/processed/test/ner-result.txt'
     ner_result_file_train = 'e:/dc/nyt-world-full/processed/train/ner-result.txt'
     cnt_test, doc_cnt_test = __count_mentions(ner_result_file_test, 'LOCATION')
-    cnt_train, doc_cnt_train = __count_mentions(ner_result_file_train, 'LOCATION')
+    # cnt_train, doc_cnt_train = __count_mentions(ner_result_file_train, 'LOCATION')
     # print cnt, doc_cnt
+    cnt_train = doc_cnt_train = 0
     cnt = cnt_test + cnt_train
     doc_cnt = doc_cnt_test + doc_cnt_train
     print cnt, doc_cnt
@@ -76,7 +77,8 @@ def dataset_statistics_nyt():
     tokenized_docs_file_test = 'e:/dc/nyt-world-full/processed/test/docs-tokenized.txt'
     tokenized_docs_file_train = 'e:/dc/nyt-world-full/processed/train/docs-tokenized.txt'
     sentence_cnt_test = __count_sentences(tokenized_docs_file_test)
-    sentence_cnt_train = __count_sentences(tokenized_docs_file_train)
+    # sentence_cnt_train = __count_sentences(tokenized_docs_file_train)
+    sentence_cnt_train = 0
     sentence_cnt = sentence_cnt_test + sentence_cnt_train
     print sentence_cnt_test, sentence_cnt_train, sentence_cnt
     print float(cnt) / sentence_cnt
@@ -86,14 +88,15 @@ def dataset_statistics_nyt():
     cooccur_mention_file_test = 'e:/dc/nyt-world-full/processed/test/cooccur-mentions.txt'
     cooccur_mention_file_train = 'e:/dc/nyt-world-full/processed/train/cooccur-mentions.txt'
     valid_cnt_test = __count_sentences_with_mentions_pairs(cooccur_mention_file_test, entity_name_dict_file_test)
-    valid_cnt_train = __count_sentences_with_mentions_pairs(cooccur_mention_file_train, entity_name_dict_file_train)
-
+    # valid_cnt_train = __count_sentences_with_mentions_pairs(cooccur_mention_file_train, entity_name_dict_file_train)
+    valid_cnt_train = 0
     print valid_cnt_test, valid_cnt_train, valid_cnt_test + valid_cnt_train
 
     ee_pair_file_train = 'e:/dc/nyt-world-full/processed/bin/ee-ner-train.bin'
     ee_pair_file_test = 'e:/dc/nyt-world-full/processed/bin/ee-ner.bin'
     pairs_cnt_test = __count_pairs_in_pair_file(ee_pair_file_test)
-    pairs_cnt_train = __count_pairs_in_pair_file(ee_pair_file_train)
+    # pairs_cnt_train = __count_pairs_in_pair_file(ee_pair_file_train)
+    pairs_cnt_train = 0
     print pairs_cnt_test, pairs_cnt_train, pairs_cnt_test + pairs_cnt_train
 
 
@@ -108,21 +111,7 @@ def dataset_statistics_tac():
     print sentence_cnt
     print float(mention_cnt) / sentence_cnt
 
-    # entity_name_dict_file_test = 'e:/dc/nyt-world-full/processed/test/entity-names-nloc.txt'
-    # entity_name_dict_file_train = 'e:/dc/nyt-world-full/processed/train/entity-names-nloc.txt'
-    # cooccur_mention_file_test = 'e:/dc/nyt-world-full/processed/test/cooccur-mentions.txt'
-    # cooccur_mention_file_train = 'e:/dc/nyt-world-full/processed/train/cooccur-mentions.txt'
-    # valid_cnt_test = __count_sentences_with_mentions_pairs(cooccur_mention_file_test, entity_name_dict_file_test)
-    # valid_cnt_train = __count_sentences_with_mentions_pairs(cooccur_mention_file_train, entity_name_dict_file_train)
-    #
-    # print valid_cnt_test, valid_cnt_train, valid_cnt_test + valid_cnt_train
-    #
-    # ee_pair_file_train = 'e:/dc/nyt-world-full/processed/bin/ee-ner-train.bin'
-    # ee_pair_file_test = 'e:/dc/nyt-world-full/processed/bin/ee-ner.bin'
-    # pairs_cnt_test = __count_pairs_in_pair_file(ee_pair_file_test)
-    # pairs_cnt_train = __count_pairs_in_pair_file(ee_pair_file_train)
-    # print pairs_cnt_test, pairs_cnt_train, pairs_cnt_test + pairs_cnt_train
-
 
 if __name__ == '__main__':
+    # dataset_statistics_nyt()
     dataset_statistics_tac()

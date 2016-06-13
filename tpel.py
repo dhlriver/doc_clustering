@@ -99,10 +99,11 @@ def __gen_line_docs_file_tac(docs_dir, dst_line_docs_file, dst_doc_list_file):
 
 
 def gen_tac_docs():
-    docs_dir = r'D:\data\el\LDC2015E19\data\2010\training\source_documents'
-    # docs_dir = r'D:\data\el\LDC2015E19\data\2009\eval\source_documents'
-    year = 2010
-    part = 'train'
+    # docs_dir = r'D:\data\el\LDC2015E19\data\2010\training\source_documents'
+    # docs_dir = r'D:\data\el\LDC2015E19\data\2010\eval\source_documents'
+    docs_dir = r'D:\data\el\LDC2015E19\data\2009\eval\source_documents'
+    year = 2009
+    part = 'eval'
     file_tag = '%d-%s' % (year, part)
 
     line_docs_file = 'e:/dc/el/tac/%d/%s/docs.txt' % (year, part)
@@ -181,8 +182,12 @@ def gen_doc_mention_names():
 
 
 def process_docs_for_ner():
-    cur_docs_file = 'e:/dc/el/tac/2010/train/docs.txt'
-    dst_docs_file = 'e:/dc/el/tac/2010/train/docs-ner.txt'
+    # cur_docs_file = 'e:/dc/el/tac/2010/train/docs.txt'
+    # dst_docs_file = 'e:/dc/el/tac/2010/train/docs-ner.txt'
+    # cur_docs_file = 'e:/dc/el/tac/2010/eval/docs.txt'
+    # dst_docs_file = 'e:/dc/el/tac/2010/eval/docs-ner.txt'
+    cur_docs_file = 'e:/dc/el/tac/2009/eval/docs.txt'
+    dst_docs_file = 'e:/dc/el/tac/2009/eval/docs-ner.txt'
 
     sub0 = '[^\s]*-[^\s]*-[^\s]*'
     sub1 = '[^\s]*[<>][^\s]*'
@@ -191,12 +196,14 @@ def process_docs_for_ner():
     sub4 = '[^\s]*@[^\s]*\.[^\s]*'
     sub5 = '&[^\s]*;'
     sub6 = '==+|__+|\*\*+'
+    sub7 = '[^\s]+\.[^\s]+\.[^\s]+'
 
     fin = open(cur_docs_file, 'rb')
     fout = open(dst_docs_file, 'wb')
     for line in fin:
         line = line.replace('USENET TEXT', '')
-        line = re.sub('%s|%s|%s|%s|%s|%s|%s' % (sub0, sub1, sub2, sub3, sub4, sub5, sub6), '', line)
+        line = line.replace('NEWS STORY', '')
+        line = re.sub('%s|%s|%s|%s|%s|%s|%s|%s' % (sub0, sub1, sub2, sub3, sub4, sub5, sub6, sub7), '', line)
         line = re.sub('\s+', ' ', line)
         fout.write(line)
         fout.write('\n')
@@ -218,7 +225,7 @@ def job_acronym_expansion():
     __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_query_file)
 
 if __name__ == '__main__':
-    # gen_tac_docs()
+    gen_tac_docs()
     # gen_doc_mention_names()
     # job_acronym_expansion()
-    process_docs_for_ner()
+    # process_docs_for_ner()

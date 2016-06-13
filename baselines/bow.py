@@ -5,7 +5,7 @@ import numpy as np
 from sklearn import svm
 from sklearn.cluster import KMeans
 
-from textclustering import cluster_accuracy, purity
+from textclustering import cluster_accuracy, purity, rand_index, write_clustering_perf_to_csv
 import ioutils
 
 
@@ -84,10 +84,17 @@ def bow_kmeans(bow_vecs, gold_labels, num_clusters):
     model = KMeans(n_clusters=num_clusters, n_jobs=4, n_init=20)
     model.fit(bow_vecs)
 
-    print len(gold_labels), 'samples'
-    print 'NMI: %f' % normalized_mutual_info_score(gold_labels, model.labels_)
-    print 'Purity: %f' % purity(gold_labels, model.labels_)
-    print 'Accuracy: %f' % cluster_accuracy(gold_labels, model.labels_)
+    # print len(gold_labels), 'samples'
+
+    nmi_score = normalized_mutual_info_score(gold_labels, model.labels_)
+    purity_score = purity(gold_labels, model.labels_)
+    ri_score = rand_index(gold_labels, model.labels_)
+
+    # print 'NMI: %f' % normalized_mutual_info_score(gold_labels, model.labels_)
+    # print 'Purity: %f' % purity(gold_labels, model.labels_)
+    # print 'Accuracy: %f' % cluster_accuracy(gold_labels, model.labels_)
+    print 'NMI: %f Purity: %f Rand index: %f' % (nmi_score, purity_score, ri_score)
+    return nmi_score, purity_score, ri_score
 
 
 def bow_classification():
@@ -99,15 +106,19 @@ def bow_classification():
 
 
 def bow_clustering():
-    num_clusters = 5
-    dw_file = 'e:/dc/nyt-world-full/processed/bin/dw-40.bin'
-    gold_labels_file = 'e:/dc/nyt-world-full/processed/doc-labels.bin'
+    num_clusters_list = [5, 10, 15, 20]
+    dw_file = 'e:/dc/nyt-world-full/processed/bin/dw-30.bin'
+    gold_labels_file = 'e:/dc/nyt-world-full/processed/test/doc-labels.bin'
+    result_file = 'd:/documents/lab/paper-data/plot/bow-results-ri.csv'
 
+    perf_list = list()
     gold_labels = ioutils.load_labels_file(gold_labels_file)
     bow_vecs = __get_bow_vecs(dw_file)
-    for num_clusters in [20]:
+    for num_clusters in num_clusters_list:
         print num_clusters, 'clusters'
-        bow_kmeans(bow_vecs, gold_labels, num_clusters)
+        # nmi_score, purity_score, ri_score = bow_kmeans(bow_vecs, gold_labels, num_clusters)
+        # perf_list.append((num_clusters, nmi_score, purity_score, ri_score))
+    # write_clustering_perf_to_csv('BoW', perf_list, result_file)
 
 if __name__ == '__main__':
     # bow_classification()
