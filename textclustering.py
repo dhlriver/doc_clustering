@@ -170,7 +170,8 @@ def cluster_and_eval(vec_list, labels, num_clusters):
 
     nmi_score = normalized_mutual_info_score(labels, model.labels_)
     purity_score = purity(labels, model.labels_)
-    ri_score = rand_index(labels, model.labels_)
+    # ri_score = rand_index(labels, model.labels_)
+    ri_score = 0
 
     # print len(labels), 'samples'
     print 'NMI: %f Purity: %f Rand index: %f' % (nmi_score, purity_score, ri_score)
@@ -247,12 +248,20 @@ def cluster_nyt():
     write_clustering_perf_to_csv(method, perf_list, result_file)
 
 
+def cluster_20ng():
+    num_clusters = 10
+    labels_file = 'e:/data/emadr/20ng_bydate/all_doc_class_labels.bin'
+    doc_vec_file = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs.bin'
+
+    vec_list = ioutils.load_vec_list_file(doc_vec_file)
+    labels = ioutils.load_labels_file(labels_file)
+    nmi_score, purity_score, ri_score = cluster_and_eval(vec_list, labels, num_clusters)
+    print nmi_score, purity_score, ri_score
+
+
 def main():
-    cluster_nyt()
-    # gold_labels = np.random.randint(0, 5, 10000)
-    # gold_labels = [0, 0, 0, 1, 1, 1]
-    # sys_labels = np.random.randint(0, 5, 10000)
-    # print rand_index(gold_labels, sys_labels)
+    # cluster_nyt()
+    cluster_20ng()
 
 if __name__ == '__main__':
     main()

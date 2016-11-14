@@ -200,16 +200,16 @@ def split_and_classify():
     # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dbow_doc_vecs.bin'
     # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dedw-vecs-ner.bin'
     # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dedw-vecs-ner.bin'
-    all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/glove-vecs.bin'
+    all_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs.bin'
     # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dw-vecs.bin'
-    train_vecs_file_name = 'e:/dc/20ng_bydate/vecs/train-dedw-vecs.bin'
-    test_vecs_file_name = 'e:/dc/20ng_bydate/vecs/test-dedw-vecs.bin'
+    train_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/train-dedw-vecs.bin'
+    test_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/test-dedw-vecs.bin'
 
-    split_labels_file_name = 'e:/dc/20ng_bydate/doc_split_labels.bin'
+    split_labels_file_name = 'e:/data/emadr/20ng_bydate/doc_split_labels.bin'
     __split_vecs(all_vecs_file_name, split_labels_file_name,
                  train_vecs_file_name, test_vecs_file_name)
-    train_label_file = 'e:/dc/20ng_bydate/train_labels.bin'
-    test_label_file = 'e:/dc/20ng_bydate/test_labels.bin'
+    train_label_file = 'e:/data/emadr/20ng_bydate/train_labels.bin'
+    test_label_file = 'e:/data/emadr/20ng_bydate/test_labels.bin'
     textclassification.doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,
                                           test_label_file, 0, -1)
 

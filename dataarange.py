@@ -3,7 +3,7 @@ from time import time
 from array import array
 from itertools import izip
 
-import text_process_common
+import textutils
 from nltk import word_tokenize
 
 
@@ -37,12 +37,12 @@ def entity_candidate_cliques_in_words(words, illegal_start_words):
             idx += 1
             continue
 
-        if text_process_common.is_sentence_end(cur_word):
+        if textutils.is_sentence_end(cur_word):
             if cur_clique_entites:
                 cliques.append(cur_clique_entites)
                 cur_clique_entites = list()
 
-        if text_process_common.all_uppercase_word(cur_word):
+        if textutils.all_uppercase_word(cur_word):
             cur_clique_entites.append(cur_word)
             indices_list.append([idx])
         elif first_letter_uppercase(cur_word):
@@ -74,7 +74,7 @@ def entity_candidate_cliques_in_words(words, illegal_start_words):
 
 def init_entity_net(tokenized_line_docs_file_name, illegal_start_words_file, dst_doc_entity_candidates_list_file,
                     dst_entity_candidate_clique_file, dst_doc_entity_indices_file=None):
-    illegal_start_words = text_process_common.load_word_set(illegal_start_words_file, has_num_words=True)
+    illegal_start_words = textutils.load_word_set(illegal_start_words_file, has_num_words=True)
 
     line_cnt = 0
     fin = open(tokenized_line_docs_file_name, 'rb')
@@ -141,8 +141,8 @@ def gen_entity_name_dict_from_candidates(doc_entity_candidates_file, lc_word_cnt
     fin.close()
     print line_cnt, 'lines total'
 
-    lc_word_cnts = text_process_common.load_word_cnts(lc_word_cnts_file)
-    wc_word_cnts = text_process_common.load_word_cnts(wc_word_cnts_file)
+    lc_word_cnts = textutils.load_word_cnts(lc_word_cnts_file)
+    wc_word_cnts = textutils.load_word_cnts(wc_word_cnts_file)
 
     print 'filtering', len(name_cnts), 'names.'
     fout = open(dst_file_name, 'wb')
@@ -513,7 +513,7 @@ def gen_entity_net_20ng():
     # gen_doc_entity_list(proper_entity_dict_file, doc_entity_candidates_file, dst_doc_entity_list_file)
 
     dst_entity_cnts_file = 'e:/dc/20ng_bydate/entity_cnts.bin'
-    text_process_common.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
+    textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
 
     entity_candidate_cliques_file = 'e:/dc/20ng_bydate/entity_candidate_cliques.txt'
     dst_entity_net_adj_list_file = 'e:/dc/20ng_bydate/entity_net_adj_list.bin'
@@ -527,7 +527,7 @@ def gen_entity_net_wiki():
 
     gen_doc_entity_pairs(proper_entity_dict_file, doc_entity_candidates_file, dst_doc_entity_list_file)
     dst_entity_cnts_file = 'e:/dc/el/wiki/entity_cnts.bin'
-    text_process_common.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
+    textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
 
     entity_candidate_cliques_file = 'e:/dc/el/wiki/entity_candidate_cliques.txt'
     dst_entity_net_adj_list_file = 'e:/dc/el/wiki/entity_net_adj_list.bin'
