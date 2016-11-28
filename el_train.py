@@ -41,7 +41,8 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     nil_cnt = 0
     miss_cnt = 0
     fh_cnt = 0
-    tmp_fout = open('e:/dc/el/tmp_result.txt', 'wb')
+    nil_hit_cnt = 0
+    tmp_fout = open('e:/data/emadr/el/tmp_result.txt', 'wb')
     fin = open(vec_train_file, 'rb')
     num_docs = np.fromfile(fin, '>i4', 1)
     print num_docs
@@ -50,6 +51,8 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     for i in xrange(num_docs):
         doc_id = ioutils.read_str_with_byte_len(fin)
         doc_vec = np.fromfile(fin, '>f4', vec_dim)
+        if i < 5:
+            print doc_vec
 
         doc_vec.astype(np.float32).tofile(fout)
 
@@ -60,21 +63,24 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
             # print qid
             # if qid == '':
             #     print doc_id, j, num_mentions
-            gold_label = label_dict[qid]
             # gold_label = 'NIL'
-            if gold_label.startswith('NIL'):
-                nil_cnt += 1
 
             num_candidates = np.fromfile(fin, '>i4', 1)
+
+            gold_label = label_dict[qid]
+
             hit_idx = -1
             commonness = list()
             candidate_vecs = list()
             eids = list()
+            all_nil = True
             for k in xrange(num_candidates):
                 mid = ioutils.read_str_with_fixed_len(fin, 8)
                 eid = mid_eid_dict.get(mid, 'NILL')
+                if eid != 'NILL':
+                    all_nil = False
 
-                if k == 0 and eid != 'NILL':
+                if k == 0 and eid == 'NILL':
                     tmp_fout.write(qid + '\t' + eid + '\n')
                 if eid == gold_label:
                     hit_idx = k
@@ -93,6 +99,11 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
                 mention_infos.append((hit_idx, commonness, candidate_vecs))
                 if hit_idx == 0:
                     fh_cnt += 1
+
+            if gold_label.startswith('NIL'):
+                nil_cnt += 1
+                if all_nil:
+                    nil_hit_cnt += 1
 
         # print len(mention_infos)
         np.asarray([len(mention_infos)], np.int32).tofile(fout)
@@ -113,9 +124,11 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     num_queries = len(label_dict)
     num_non_nil_queries = num_queries - nil_cnt
     print 'nil_cnt\tmiss_cnt\tfh_cnt\tnum_queries\tnum_non_nil_queries'
-    print nil_cnt, miss_cnt, fh_cnt, num_queries, num_non_nil_queries
+    print nil_cnt, miss_cnt, fh_cnt, num_queries, num_non_nil_queries, nil_hit_cnt
     print float(fh_cnt) / num_non_nil_queries
     print 1 - float(miss_cnt - nil_cnt) / num_non_nil_queries
+    print float(num_queries - miss_cnt + nil_hit_cnt) / num_queries
+    print 1 - float(miss_cnt - nil_cnt) / num_queries
 
 
 def simple_link():
@@ -215,9 +228,9 @@ def test():
 def main():
     year = 2010
     part = 'eval'
-    method = 4
+    method = 3
     expand = ''
-    expand = '_exp'
+    # expand = '_exp'
 
     gold_label_file = ''
     if year == 2014 and part == 'train':
@@ -226,6 +239,9 @@ def main():
     if year == 2014 and part == 'eval':
         gold_label_file = 'd:/data/el/LDC2015E20_EDL_2014/data/eval/' \
                           'tac_2014_kbp_english_EDL_evaluation_KB_links.tab'
+    if year == 2011 and part == 'eval':
+        gold_label_file = 'e:/data/el/LDC2015E19/data/2011/eval/' \
+                          'tac_kbp_2011_english_entity_linking_evaluation_KB_links.tab'
     if year == 2010 and part == 'eval':
         gold_label_file = 'd:/data/el/LDC2015E19/data/2010/eval/' \
                           'tac_kbp_2010_english_entity_linking_evaluation_KB_links.tab'
@@ -238,8 +254,10 @@ def main():
 
     # vec_file = 'e:/dc/el/dwe_train/tac_' + file_tag + '.bin'
     # dst_file = 'e:/dc/el/dwe_train/tac_' + file_tag + '_wl.bin'
-    vec_file = 'e:/dc/el/dwe_train/%d/%s_%d%s.bin' % (year, part, method, expand)
-    dst_file = 'e:/dc/el/dwe_train/%d/%s_%d%s_wl.bin' % (year, part, method, expand)
+    # vec_file = 'e:/data/emadr/el/datasetbin/%d/%s_%d%s.bin' % (year, part, method, expand)
+    # dst_file = 'e:/data/emadr/el/datasetbin/%d/%s_%d%s_wl.bin' % (year, part, method, expand)
+    vec_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d.bin' % (year, part, method)
+    dst_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d_wl.bin' % (year, part, method)
 
     mid_eid_file = 'd:/data/el/2014/mid_to_eid.ss'
     add_gold_label(vec_file, gold_label_file, mid_eid_file, dst_file)

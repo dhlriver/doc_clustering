@@ -3,6 +3,7 @@ from time import time
 from array import array
 from itertools import izip
 
+import ioutils
 import textutils
 from nltk import word_tokenize
 
@@ -10,6 +11,36 @@ from nltk import word_tokenize
 con_words = ['of', 'and', 'at']
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
           'August', 'September', 'October', 'November', 'December']
+
+
+def split_vecs(all_vecs_file_name, split_labels_file_name,
+               dst_train_vecs_file_name, dst_test_vecs_file_name,
+               train_label=0, test_label=1):
+    all_vec_list = ioutils.load_vec_list_file(all_vecs_file_name)
+    split_labels = ioutils.load_labels_file(split_labels_file_name)
+
+    train_vec_list = list()
+    test_vec_list = list()
+    for vec, split_label in zip(all_vec_list, split_labels):
+        # vec = np.random.uniform(0, 1, len(vec)).astype(np.float32)
+        # print split_label
+        if split_label == test_label:
+            test_vec_list.append(vec)
+        elif split_label == train_label:
+            train_vec_list.append(vec)
+
+    print len(train_vec_list), 'training samples'
+    print len(test_vec_list), 'testing samples'
+
+    def save_vecs(vec_list, dst_file_name):
+        fout = open(dst_file_name, 'wb')
+        np.asarray([len(vec_list), len(vec_list[0])], np.int32).tofile(fout)
+        for cur_vec in vec_list:
+            cur_vec.tofile(fout)
+        fout.close()
+
+    save_vecs(train_vec_list, dst_train_vecs_file_name)
+    save_vecs(test_vec_list, dst_test_vecs_file_name)
 
 
 def first_letter_uppercase(word):
@@ -74,7 +105,7 @@ def entity_candidate_cliques_in_words(words, illegal_start_words):
 
 def init_entity_net(tokenized_line_docs_file_name, illegal_start_words_file, dst_doc_entity_candidates_list_file,
                     dst_entity_candidate_clique_file, dst_doc_entity_indices_file=None):
-    illegal_start_words = textutils.load_word_set(illegal_start_words_file, has_num_words=True)
+    illegal_start_words = textutils.load_words_to_set(illegal_start_words_file, has_num_words=True)
 
     line_cnt = 0
     fin = open(tokenized_line_docs_file_name, 'rb')
@@ -491,21 +522,6 @@ def job_gen_entity_edge_list_from_cliques():
                                       dst_weighted_edge_list_file_name)
 
 
-def job_init_entity_net_wiki():
-    line_docs_file_name = 'e:/dc/el/wiki/wiki_lines_tokenized.txt'
-    illegal_start_words_file = 'e:/dc/20ng_bydate/stopwords.txt'
-    dst_doc_entity_candidates_list_file = 'e:/dc/el/wiki/doc_entity_candidates.txt'
-    dst_entity_candidate_clique_file = 'e:/dc/el/wiki/entity_candidate_cliques.txt'
-    init_entity_net(line_docs_file_name, illegal_start_words_file, dst_doc_entity_candidates_list_file,
-                    dst_entity_candidate_clique_file)
-
-    lc_word_cnts_file_name = 'e:/dc/el/wiki//wiki_word_cnts_lc.txt'
-    wc_word_cnts_file_name = 'e:/dc/el/wiki/wiki_word_cnts_with_case.txt'
-    dst_entity_name_list_file = 'e:/dc/el/wiki/entity_names.txt'
-    gen_entity_name_dict_from_candidates(dst_doc_entity_candidates_list_file, lc_word_cnts_file_name,
-                                         wc_word_cnts_file_name, dst_entity_name_list_file)
-
-
 def gen_entity_net_20ng():
     proper_entity_dict_file = 'e:/dc/20ng_bydate/entity_names.txt'
     doc_entity_candidates_file = 'e:/dc/20ng_bydate/doc_entity_candidates.txt'
@@ -515,9 +531,20 @@ def gen_entity_net_20ng():
     dst_entity_cnts_file = 'e:/dc/20ng_bydate/entity_cnts.bin'
     textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
 
-    entity_candidate_cliques_file = 'e:/dc/20ng_bydate/entity_candidate_cliques.txt'
-    dst_entity_net_adj_list_file = 'e:/dc/20ng_bydate/entity_net_adj_list.bin'
-    # gen_entity_net_adj_list(proper_entity_dict_file, entity_candidate_cliques_file, dst_entity_net_adj_list_file)
+
+def job_init_entity_net_wiki():
+    line_docs_file_name = 'e:/dc/el/wiki/wiki_lines_tokenized.txt'
+    illegal_start_words_file = 'e:/dc/20ng_bydate/stopwords.txt'
+    dst_doc_entity_candidates_list_file = 'e:/dc/el/wiki/doc_entity_candidates.txt'
+    dst_entity_candidate_clique_file = 'e:/dc/el/wiki/entity_candidate_cliques.txt'
+    init_entity_net(line_docs_file_name, illegal_start_words_file, dst_doc_entity_candidates_list_file,
+                    dst_entity_candidate_clique_file)
+
+    lc_word_cnts_file_name = 'e:/dc/el/wiki/wiki_word_cnts_lc.txt'
+    wc_word_cnts_file_name = 'e:/dc/el/wiki/wiki_word_cnts_with_case.txt'
+    dst_entity_name_list_file = 'e:/dc/el/wiki/entity_names.txt'
+    gen_entity_name_dict_from_candidates(dst_doc_entity_candidates_list_file, lc_word_cnts_file_name,
+                                         wc_word_cnts_file_name, dst_entity_name_list_file)
 
 
 def gen_entity_net_wiki():

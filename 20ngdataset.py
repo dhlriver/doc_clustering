@@ -113,35 +113,6 @@ def pack_docs_for_ner(doc_list_file, dst_file):
     fout.close()
 
 
-def __split_vecs(all_vecs_file_name, split_labels_file_name,
-                 dst_train_vecs_file_name, dst_test_vecs_file_name):
-    all_vec_list = ioutils.load_vec_list_file(all_vecs_file_name)
-    split_labels = ioutils.load_labels_file(split_labels_file_name)
-
-    train_vec_list = list()
-    test_vec_list = list()
-    for vec, split_label in zip(all_vec_list, split_labels):
-        # vec = np.random.uniform(0, 1, len(vec)).astype(np.float32)
-        # print split_label
-        if split_label == 1:
-            test_vec_list.append(vec)
-        else:
-            train_vec_list.append(vec)
-
-    print len(train_vec_list), 'training samples'
-    print len(test_vec_list), 'testing samples'
-
-    def save_vecs(vec_list, dst_file_name):
-        fout = open(dst_file_name, 'wb')
-        np.asarray([len(vec_list), len(vec_list[0])], np.int32).tofile(fout)
-        for cur_vec in vec_list:
-            cur_vec.tofile(fout)
-        fout.close()
-
-    save_vecs(train_vec_list, dst_train_vecs_file_name)
-    save_vecs(test_vec_list, dst_test_vecs_file_name)
-
-
 def make_bydate_dataset_info():
     dir_path = 'e:/dc/20news-bydate'
     dst_path_list_file = 'e:/dc/20ng_bydate/all_doc_path_list.txt'
@@ -157,7 +128,7 @@ def make_bydate_dataset_info():
 def setup_entity_pairs_file():
     doc_list_file = 'e:/dc/20ng_bydate/all_doc_path_list.txt'
     docs_ner_file = 'e:/dc/20ng_bydate/docs-for-ner.txt'
-    # pack_docs_for_ner(doc_list_file, docs_ner_file)
+    pack_docs_for_ner(doc_list_file, docs_ner_file)
 
     docs_ner_file = 'e:/dc/20ng_bydate/docs-for-ner.txt'
     ner_result_file = 'e:/dc/20ng_bydate/ner-result.txt'
@@ -195,38 +166,15 @@ def gen_files_for_twe():
     textutils.filter_words_in_line_docs(text_file, words_dict_file, lda_input_file)
 
 
-def split_and_classify():
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dw-vecs.bin'
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dbow_doc_vecs.bin'
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dedw-vecs-ner.bin'
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dedw-vecs-ner.bin'
-    all_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs.bin'
-    # all_vecs_file_name = 'e:/dc/20ng_bydate/vecs/dw-vecs.bin'
-    train_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/train-dedw-vecs.bin'
-    test_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/test-dedw-vecs.bin'
-
-    split_labels_file_name = 'e:/data/emadr/20ng_bydate/doc_split_labels.bin'
-    __split_vecs(all_vecs_file_name, split_labels_file_name,
-                 train_vecs_file_name, test_vecs_file_name)
-    train_label_file = 'e:/data/emadr/20ng_bydate/train_labels.bin'
-    test_label_file = 'e:/data/emadr/20ng_bydate/test_labels.bin'
-    textclassification.doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,
-                                          test_label_file, 0, -1)
-
-
-def test():
+def __test():
     print 'test'
 
 
 def main():
-    # test()
+    __test()
     # make_bydate_dataset_info()
-
     # setup_entity_pairs_file()
-
     # gen_files_for_twe()
-
-    split_and_classify()
 
 if __name__ == '__main__':
     main()

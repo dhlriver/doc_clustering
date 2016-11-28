@@ -2,6 +2,7 @@ import re
 import os
 
 import textutils
+import dataarange
 
 
 def __is_full_name(acronym, full_name):
@@ -80,45 +81,32 @@ def __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_que
     fout.close()
 
 
-def __gen_line_docs_file_tac(docs_dir, dst_line_docs_file, dst_doc_list_file):
-    fout0 = open(dst_line_docs_file, 'wb')
-    fout1 = open(dst_doc_list_file, 'wb')
-    for f in os.listdir(docs_dir):
-        file_path = os.path.join(docs_dir, f)
-        if not os.path.isfile(file_path):
-            continue
-
-        fout1.write(f)
-        fout1.write('\n')
-
-        line_text = textutils.doc_to_line(file_path)
-        fout0.write(line_text)
-        fout0.write('\n')
-    fout0.close()
-    fout1.close()
-
-
-def gen_tac_docs():
-    # docs_dir = r'D:\data\el\LDC2015E19\data\2010\training\source_documents'
-    # docs_dir = r'D:\data\el\LDC2015E19\data\2010\eval\source_documents'
-    docs_dir = r'D:\data\el\LDC2015E19\data\2009\eval\source_documents'
-    year = 2009
-    part = 'eval'
-    file_tag = '%d-%s' % (year, part)
-
-    line_docs_file = 'e:/dc/el/tac/%d/%s/docs.txt' % (year, part)
-    docs_list_file = 'e:/dc/el/tac/%d/%s/docs-list.txt' % (year, part)
-    __gen_line_docs_file_tac(docs_dir, line_docs_file, docs_list_file)
-
-    tokenized_line_docs_file = 'e:/dc/el/tac/tac_%s_docs_text_tokenized.txt' % file_tag
-    proper_word_cnts_dict_file = 'e:/dc/el/wiki/words_dict_proper.txt'
-    max_word_len = 20
-    tokenized_line_docs_lc_file = 'e:/dc/el/tac/tac_%s_docs_text_tokenized_lc.txt' % file_tag
-    bow_docs_file = 'e:/dc/el/tac/tac_%s_docs_bow.bin' % file_tag
-
-    # textutils.gen_lowercase_token_file(tokenized_line_docs_file, proper_word_cnts_dict_file,
-    #                                    max_word_len, tokenized_line_docs_lc_file)
-    # textutils.line_docs_to_bow(tokenized_line_docs_lc_file, proper_word_cnts_dict_file, bow_docs_file)
+def __gen_line_docs_file_tac(doc_list_file, dst_line_docs_file):
+    f = open(doc_list_file, 'r')
+    fout = open(dst_line_docs_file, 'wb')
+    for line in f:
+        line = line.strip()
+        print line
+        line_text = textutils.doc_to_line(line)
+        fout.write(line_text)
+        fout.write('\n')
+    f.close()
+    fout.close()
+    # fout0 = open(dst_line_docs_file, 'wb')
+    # fout1 = open(dst_doc_list_file, 'wb')
+    # for f in os.listdir(docs_dir):
+    #     file_path = os.path.join(docs_dir, f)
+    #     if not os.path.isfile(file_path):
+    #         continue
+    #
+    #     fout1.write(f)
+    #     fout1.write('\n')
+    #
+    #     line_text = textutils.doc_to_line(file_path)
+    #     fout0.write(line_text)
+    #     fout0.write('\n')
+    # fout0.close()
+    # fout1.close()
 
 
 def gen_doc_mention_names():
@@ -211,6 +199,57 @@ def process_docs_for_ner():
     fout.close()
 
 
+def __job_init_entity_net():
+    line_docs_file_name = 'e:/data/emadr/el/tac/2011/eval/docs-tokenized.txt'
+    illegal_start_words_file = 'e:/data/emadr/20ng_bydate/stopwords.txt'
+    dst_doc_entity_candidates_list_file = 'e:/data/emadr/el/tac/2011/eval/doc_entity_candidates.txt'
+    dst_entity_candidate_clique_file = 'e:/data/emadr/el/tac/2011/eval/entity_candidate_cliques.txt'
+    dataarange.init_entity_net(line_docs_file_name, illegal_start_words_file, dst_doc_entity_candidates_list_file,
+                               dst_entity_candidate_clique_file)
+
+
+def __setup_doc_entities_file():
+    line_docs_file_name = 'e:/data/emadr/el/tac/2011/eval/docs-tokenized.txt'
+    illegal_start_words_file = 'e:/data/emadr/20ng_bydate/stopwords.txt'
+    doc_entity_candidates_list_file = 'e:/data/emadr/el/tac/2011/eval/doc_entity_candidates.txt'
+    entity_candidate_clique_file = 'e:/data/emadr/el/tac/2011/eval/entity_candidate_cliques.txt'
+    # dataarange.init_entity_net(line_docs_file_name, illegal_start_words_file, doc_entity_candidates_list_file,
+    #                            entity_candidate_clique_file)
+
+    proper_entity_dict_file = 'e:/data/emadr/el/wiki/entity_names.txt'
+    # doc_entity_candidates_file = 'e:/data/emadr/el/wiki/doc_entity_candidates.txt'
+    dst_doc_entity_list_file = 'e:/data/emadr/el/tac/2011/eval/de.bin'
+
+    dataarange.gen_doc_entity_pairs(proper_entity_dict_file, doc_entity_candidates_list_file, dst_doc_entity_list_file)
+    dst_entity_cnts_file = 'e:/data/emadr/el/tac/2011/eval/entity_cnts.bin'
+    textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
+
+
+def __gen_tac_docs():
+    # docs_dir = r'D:\data\el\LDC2015E19\data\2010\training\source_documents'
+    docs_dir = r'D:\data\el\LDC2015E19\data\2010\eval\source_documents'
+    # docs_dir = r'D:\data\el\LDC2015E19\data\2009\eval\source_documents'
+    year = 2010
+    part = 'eval'
+
+    doc_list_file = 'e:/data/el/LDC2015E19/data/%d/%s/data/eng-docs-list-win.txt' % (year, part)
+    line_docs_file = 'e:/data/emadr/el/tac/%d/%s/docs.txt' % (year, part)
+    # __gen_line_docs_file_tac(doc_list_file, line_docs_file)
+
+    tokenized_line_docs_file = 'e:/data/emadr/el/tac/%d/%s/docs-tokenized.txt' % (year, part)
+    proper_word_cnts_dict_file = 'e:/data/emadr/el/wiki/words_dict_proper.txt'
+    max_word_len = 20
+    tokenized_line_docs_lc_file = 'e:/data/emadr/el/tac/%d/%s/docs-tokenized-lc.txt' % (year, part)
+    bow_docs_file = 'e:/data/emadr/el/tac/%d/%s/dw.bin' % (year, part)
+
+    textutils.gen_lowercase_token_file(tokenized_line_docs_file, proper_word_cnts_dict_file,
+                                       max_word_len, 1, tokenized_line_docs_lc_file)
+    textutils.line_docs_to_bow(tokenized_line_docs_lc_file, proper_word_cnts_dict_file, 2, bow_docs_file)
+
+    # dst_word_cnts_file = 'e:/data/emadr/el/tac/%d/%s/word_cnts.bin' % (year, part)
+    # textutils.gen_word_cnts_file_from_bow_file(bow_docs_file, dst_word_cnts_file)
+
+
 def job_acronym_expansion():
     # query_file = r'D:\data\el\LDC2015E19\data\2009\eval\tac_kbp_2009' \
     #              r'_english_entity_linking_evaluation_queries.xml'
@@ -225,7 +264,8 @@ def job_acronym_expansion():
     __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_query_file)
 
 if __name__ == '__main__':
-    gen_tac_docs()
+    __gen_tac_docs()
+    # __setup_doc_entities_file()
     # gen_doc_mention_names()
     # job_acronym_expansion()
     # process_docs_for_ner()

@@ -2,6 +2,8 @@ import numpy as np
 from sklearn import svm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
+import dataarange
+
 
 def load_features(file_name):
     fin = open(file_name, 'rb')
@@ -62,8 +64,37 @@ def doc_classification(train_vec_file, train_label_file, test_vec_file, test_lab
     print 'macro f1', f1_score(test_y, y_pred, average='macro')
 
 
+def __20ng_classification():
+    all_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs.bin'
+    split_labels_file_name = 'e:/data/emadr/20ng_bydate/doc_split_labels.bin'
+    train_label_file = 'e:/data/emadr/20ng_bydate/train_labels.bin'
+    test_label_file = 'e:/data/emadr/20ng_bydate/test_labels.bin'
+    train_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/train-dedw-vecs.bin'
+    test_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/test-dedw-vecs.bin'
+
+    dataarange.split_vecs(all_vecs_file_name, split_labels_file_name,
+                          train_vecs_file_name, test_vecs_file_name)
+    doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,
+                       test_label_file, 0, -1)
+
+
+def __nyt_classification():
+    all_vecs_file_name = 'e:/data/emadr/nyt-world-full/processed/vecs/dew-vecs.bin'
+    split_labels_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
+    train_label_file = 'e:/data/emadr/nyt-world-full/processed/bin/train-labels.bin'
+    test_label_file = 'e:/data/emadr/nyt-world-full/processed/bin/test-labels.bin'
+    train_vecs_file_name = 'e:/data/emadr/nyt-world-full/processed/vecs/train-dedw-vecs.bin'
+    test_vecs_file_name = 'e:/data/emadr/nyt-world-full/processed/vecs/test-dedw-vecs.bin'
+
+    dataarange.split_vecs(all_vecs_file_name, split_labels_file_name,
+                          train_vecs_file_name, test_vecs_file_name)
+    doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,
+                       test_label_file, 0, -1)
+
+
 def main():
-    print 'classify'
+    # __20ng_classification()
+    __nyt_classification()
     # doc_classification()
 
 if __name__ == '__main__':

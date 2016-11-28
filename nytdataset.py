@@ -2,6 +2,8 @@
 import os
 import re
 import numpy as np
+from itertools import izip
+from ioutils import load_labels_file
 
 import textutils
 import dataarange
@@ -62,19 +64,27 @@ def __doc_info_file_to_label_file(doc_info_file, dst_label_file):
     fout.close()
 
 
-def nyt_dataset_merge():
+def __nyt_dataset_merge():
     # year_data_dirs = ['e:/dc/nyt-world-full/2013', 'e:/dc/nyt-world-full/2014']
-    year_data_dirs = ['e:/dc/nyt-world-full/2011', 'e:/dc/nyt-world-full/2012']
+    # year_data_dirs = ['e:/dc/nyt-world-full/2011', 'e:/dc/nyt-world-full/2012']
+    # year_data_dirs = ['e:/dc/nyt-world-full/2013', 'e:/dc/nyt-world-full/2014']
+    year_data_dirs = ['e:/data/emadr/nyt-world-full/2011', 'e:/data/emadr/nyt-world-full/2012',
+                      'e:/data/emadr/nyt-world-full/2013', 'e:/data/emadr/nyt-world-full/2014']
 
     # doc_list_file = 'e:/dc/nyt-world-full/processed/train/doclist.txt'
     # docs_file = 'e:/dc/nyt-world-full/processed/train/docs.txt'
     # doc_info_file = 'e:/dc/nyt-world-full/processed/train/docinfo.txt'
     # doc_labels_file = 'e:/dc/nyt-world-full/processed/train/doc-labels.bin'
 
-    doc_list_file = 'e:/dc/nyt-world-full/processed/doclist-train.txt'
-    docs_file = 'e:/dc/nyt-world-full/processed/docs-train.txt'
-    doc_info_file = 'e:/dc/nyt-world-full/processed/docinfo-train.txt'
-    doc_labels_file = 'e:/dc/nyt-world-full/processed/doc-labels-train.bin'
+    # doc_list_file = 'e:/dc/nyt-world-full/processed/doclist-train.txt'
+    # docs_file = 'e:/dc/nyt-world-full/processed/docs-train.txt'
+    # doc_info_file = 'e:/dc/nyt-world-full/processed/docinfo-train.txt'
+    # doc_labels_file = 'e:/dc/nyt-world-full/processed/doc-labels-train.bin'
+
+    doc_list_file = 'e:/data/emadr/nyt-world-full/processed/doclist.txt'
+    docs_file = 'e:/data/emadr/nyt-world-full/processed/docs.txt'
+    doc_info_file = 'e:/data/emadr/nyt-world-full/processed/doc-labels.txt'
+    doc_labels_file = 'e:/data/emadr/nyt-world-full/processed/doc-labels.bin'
 
     dir_list = __get_dirs(year_data_dirs)
 
@@ -122,40 +132,40 @@ def nyt_dataset_merge():
     __doc_info_file_to_label_file(doc_info_file, doc_labels_file)
 
 
-def gen_word_cnts_dict():
-    tokenized_line_docs_file_name = 'e:/dc/nyt-world-full/processed/docs-tokenized.txt'
-    dst_file_name = 'e:/dc/nyt-world-full/processed/word_cnts_lc.txt'
+def __gen_word_cnts_dict():
+    tokenized_line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized.txt'
+    dst_file_name = 'e:/data/emadr/nyt-world-full/processed/word_cnts_lc.txt'
     textutils.gen_word_cnts_dict_with_line_docs(tokenized_line_docs_file_name, dst_file_name)
-    dst_file_name = 'e:/dc/nyt-world-full/processed/word_cnts_with_case.txt'
+    dst_file_name = 'e:/data/emadr/nyt-world-full/processed/word_cnts_with_case.txt'
     textutils.gen_word_cnts_dict_with_line_docs(tokenized_line_docs_file_name, dst_file_name, tolower=False)
 
 
-def gen_words_dict_nyt():
-    word_cnt_file_name = 'e:/dc/nyt-world-full/processed/word_cnts_lc.txt'
-    stop_words_file_name = 'e:/common_res/stopwords.txt'
-    dst_file_name = 'e:/dc/nyt-world-full/processed/words_dict_proper.txt'
+def __gen_words_dict_nyt():
+    word_cnt_file_name = 'e:/data/emadr/nyt-world-full/processed/word_cnts_lc.txt'
+    stop_words_file_name = 'e:/data/common-res/stopwords.txt'
+    dst_file_name = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
     textutils.gen_proper_words_dict_with_cnts(word_cnt_file_name, stop_words_file_name, 2, 20,
                                               dst_file_name)
 
 
-def gen_lowercase_token_file_nyt():
-    tokenized_line_docs_file_name = 'e:/dc/nyt-world-full/processed/docs-tokenized.txt'
-    proper_word_cnts_dict_file = 'e:/dc/nyt-world-full/processed/words_dict_proper.txt'
+def __gen_lowercase_token_file_nyt():
+    tokenized_line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized.txt'
+    proper_word_cnts_dict_file = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
     max_word_len = 20
-    min_occurrance = 40
-    dst_file_name = 'e:/dc/nyt-world-full/processed/docs-tokenized-lc-%d.txt' % min_occurrance
+    min_occurrance = 2
+    dst_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-%d.txt' % min_occurrance
     textutils.gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dict_file,
                                        max_word_len, min_occurrance, dst_file_name)
 
 
-def gen_dw_nyt():
-    min_occurrance = 30
-    line_docs_file_name = 'e:/dc/nyt-world-full/processed/test/docs_tokenized_lc.txt'
-    proper_word_cnts_dict_file = 'e:/dc/nyt-world-full/processed/words_dict_proper.txt'
-    dst_bow_docs_file_name = 'e:/dc/nyt-world-full/processed/bin/dw-%d.bin' % min_occurrance
+def __gen_dw_nyt():
+    min_occurrance = 2
+    line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-%d.txt' % min_occurrance
+    proper_word_cnts_dict_file = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
+    dst_bow_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/dw-%d.bin' % min_occurrance
     textutils.line_docs_to_bow(line_docs_file_name, proper_word_cnts_dict_file, min_occurrance, dst_bow_docs_file_name)
 
-    dst_word_cnts_file = 'e:/dc/nyt-world-full/processed/bin/word-cnts-%d.bin' % min_occurrance
+    dst_word_cnts_file = 'e:/data/emadr/nyt-world-full/processed/bin/word-cnts-%d.bin' % min_occurrance
     textutils.gen_word_cnts_file_from_bow_file(dst_bow_docs_file_name, dst_word_cnts_file)
 
 
@@ -186,46 +196,39 @@ def retrieve_mentions():
     dataarange.gen_entity_entity_pairs(proper_entity_dict_file, entity_candidate_cliques_file, ee_file)
 
 
-def get_cnts_file():
-    adj_list_file = 'e:/dc/nyt-world-full/processed/bin/de.bin'
-    cnts_file = 'e:/dc/nyt-world-full/processed/bin/entity-cnts.bin'
-    dataarange.gen_cnts_file(adj_list_file, cnts_file)
-
-
 def doc_info_to_labels():
     doc_info_file = 'e:/dc/nyt-world-full/processed/docinfo.txt'
     doc_labels_file = 'e:/dc/nyt-world-full/processed/doc-labels.bin'
     __doc_info_file_to_label_file(doc_info_file, doc_labels_file)
 
 
-def setup_entity_pairs_file():
+def __setup_entity_pairs_file():
     # docs_ner_file = 'e:/dc/nyt-world-full/processed/docs.txt'
     # ner_result_file = 'e:/dc/nyt-world-full/processed/ner-result.txt'
     # cooccur_mentions_file = 'e:/dc/nyt-world-full/processed/mentions-ner/cooccur-mentions.txt'
     # entity_name_dict_file = 'e:/dc/nyt-world-full/processed/mentions-ner/entity-names-nloc.txt'
     # ner_result_file = 'e:/dc/nyt-world-full/processed/ner-result.txt'
-    # doc_all_mentions_file = 'e:/dc/nyt-world-full/processed/mentions-ner/doc-mentions.txt'
-    # doc_entity_file = 'e:/dc/nyt-world-full/processed/bin/de-ner.bin'
-    # ee_file = 'e:/dc/nyt-world-full/processed/bin/ee-ner.bin'
-    # cnts_file = 'e:/dc/nyt-world-full/processed/bin/entity-cnts-ner.bin'
 
-    docs_ner_file = 'e:/dc/nyt-world-full/processed/train/docs.txt'
-    ner_result_file = 'e:/dc/nyt-world-full/processed/train/ner-result.txt'
-    cooccur_mentions_file = 'e:/dc/nyt-world-full/processed/train/cooccur-mentions.txt'
-    entity_name_dict_file = 'e:/dc/nyt-world-full/processed/train/entity-names-nloc.txt'
-    ee_file = 'e:/dc/nyt-world-full/processed/bin/ee-ner-train.bin'
+    docs_ner_file = 'e:/data/emadr/nyt-world-full/processed/docs.txt'
+    ner_result_file = 'e:/data/emadr/nyt-world-full/processed/ner-result.txt'
+    cooccur_mentions_file = 'e:/data/emadr/nyt-world-full/processed/cooccur-mentions.txt'
+    entity_name_dict_file = 'e:/data/emadr/nyt-world-full/processed/entity-names-nloc.txt'
+    doc_all_mentions_file = 'e:/data/emadr/nyt-world-full/processed/doc-mentions.txt'
+    ee_file = 'e:/data/emadr/nyt-world-full/processed/bin/ee.bin'
+    de_file = 'e:/data/emadr/nyt-world-full/processed/bin/de.bin'
+    cnts_file = 'e:/data/emadr/nyt-world-full/processed/bin/entity-cnts.bin'
 
     # dataarange.gen_ee_pairs_with_ner_result(docs_ner_file, ner_result_file, cooccur_mentions_file)
 
     # gen entity name dict
-    dataarange.gen_entity_name_dict(ner_result_file, entity_name_dict_file, True)
+    # dataarange.gen_entity_name_dict(ner_result_file, entity_name_dict_file, True)
+
     # dataarange.ner_result_to_tab_sep(ner_result_file, doc_all_mentions_file)
+    # dataarange.gen_doc_entity_pairs(entity_name_dict_file, doc_all_mentions_file, de_file)
 
-    # dataarange.gen_doc_entity_pairs(entity_name_dict_file, doc_all_mentions_file, doc_entity_file)
+    # dataarange.gen_entity_entity_pairs(entity_name_dict_file, cooccur_mentions_file, ee_file)
 
-    dataarange.gen_entity_entity_pairs(entity_name_dict_file, cooccur_mentions_file, ee_file)
-
-    # dataarange.gen_cnts_file(doc_entity_file, cnts_file)
+    dataarange.gen_cnts_file(de_file, cnts_file)
 
 
 def gen_bow_file():
@@ -236,18 +239,69 @@ def gen_bow_file():
     textutils.tokenized_text_to_bow(tokenized_data_file, words_dict_file, bow_file, min_occurrance)
 
 
+def __gen_data_split_labels_file():
+    doc_labels_file = 'e:/data/emadr/nyt-world-full/processed/doc-labels.bin'
+    data_split_labels_file = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
+    train_labels_file = 'e:/data/emadr/nyt-world-full/processed/bin/train-labels.bin'
+    test_labels_file = 'e:/data/emadr/nyt-world-full/processed/bin/test-labels.bin'
+    f = open(doc_labels_file, 'rb')
+    nums = np.fromfile(f, np.int32, 1)
+    all_labels = np.fromfile(f, np.int32, nums)
+    f.close()
+
+    split_labels = np.random.randint(0, 2, nums)
+    fout_data_split = open(data_split_labels_file, 'wb')
+    nums.tofile(fout_data_split)
+    split_labels.tofile(fout_data_split)
+    fout_data_split.close()
+
+    def write_labels(cur_labels, filename):
+        fout = open(filename, 'wb')
+        np.asarray([len(cur_labels)], dtype=np.int32).tofile(fout)
+        np.asarray(cur_labels, dtype=np.int32).tofile(fout)
+        fout.close()
+
+    train_labels = [cl for cl, sl in izip(all_labels, split_labels) if sl == 0]
+    test_labels = [cl for cl, sl in izip(all_labels, split_labels) if sl == 1]
+    write_labels(train_labels, train_labels_file)
+    write_labels(test_labels, test_labels_file)
+
+
+def __classification():
+    print 'ok'
+
+
+def __test():
+    doc_labels_file = 'e:/data/emadr/nyt-world-full/processed/doc-labels.bin'
+    data_split_labels_file = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
+    train_labels_file = 'e:/data/emadr/nyt-world-full/processed/bin/train-labels.bin'
+    test_labels_file = 'e:/data/emadr/nyt-world-full/processed/bin/test-labels.bin'
+
+    doc_labels = load_labels_file(doc_labels_file)
+    print len(doc_labels), doc_labels[:20]
+    split_labels = load_labels_file(data_split_labels_file)
+    print len(split_labels), split_labels[:20]
+    train_labels = load_labels_file(train_labels_file)
+    print len(train_labels), train_labels[:20]
+    test_labels = load_labels_file(test_labels_file)
+    print len(test_labels), test_labels[:20]
+
+
 if __name__ == '__main__':
-    # nyt_dataset_merge()
-    # dataset_statistics()
+    __test()
+    # __nyt_dataset_merge()
+    # __setup_entity_pairs_file()
+    # __gen_data_split_labels_file()
 
-    # gen_word_cnts_dict()
-    # gen_words_dict_nyt()
-    # gen_lowercase_token_file_nyt()
-    gen_dw_nyt()
+    # __gen_word_cnts_dict()
+    # __gen_words_dict_nyt()
+    # __gen_lowercase_token_file_nyt()
+    # __gen_dw_nyt()
 
-    # setup_entity_pairs_file()
+    __classification()
+
     # gen_bow_file()
 
+    # dataset_statistics()
     # retrieve_mentions()
-    # get_cnts_file()
     # doc_info_to_labels()
