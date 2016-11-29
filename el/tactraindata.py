@@ -51,8 +51,8 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     for i in xrange(num_docs):
         doc_id = ioutils.read_str_with_byte_len(fin)
         doc_vec = np.fromfile(fin, '>f4', vec_dim)
-        if i < 5:
-            print doc_vec
+        # if i < 5:
+        #     print doc_vec
 
         doc_vec.astype(np.float32).tofile(fout)
 
@@ -206,23 +206,21 @@ def simple_link():
     print total_num_candidates
 
 
-def test():
-    file0 = 'e:/el/link_result/query_results_clf_train_14.txt'
-    file1 = 'e:/dc/el/tmp_result.txt'
-    results = dict()
-    fin = open(file0, 'rb')
-    for line in fin:
-        vals = line.strip().split()
-        results[vals[0]] = vals[1]
-    fin.close()
-
-    fin = open(file1, 'rb')
-    for line in fin:
-        vals = line.strip().split()
-        eid0 = results[vals[0]]
-        if vals[1] != eid0:
-            print vals[0], vals[1], eid0
-    fin.close()
+def __test():
+    filename = 'e:/data/emadr/el/tac/2010/eval/dw.bin'
+    # filename = 'e:/data/emadr/20ng_bydate/bin/dw.bin'
+    f = open(filename, 'rb')
+    num_left, num_right = np.fromfile(f, '<i4', 2)
+    print num_left, num_right
+    for i in xrange(num_left):
+        num_adj = np.fromfile(f, '<i4', 1)
+        print num_adj
+        adjs = np.fromfile(f, '<i4', num_adj)
+        print adjs
+        weights = np.fromfile(f, '<u2', num_adj)
+        print weights
+        break
+    f.close()
 
 
 def main():
@@ -266,4 +264,4 @@ def main():
 if __name__ == '__main__':
     main()
     # simple_link()
-    # test()
+    # __test()
