@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.spatial
 import ioutils
+from itertools import izip
 
 
 def load_gold_label_file(label_file):
@@ -32,6 +33,16 @@ def load_mid_eid_file(file_name):
     return mid_eid_dict
 
 
+def __print_candidates(candidates_list):
+    f = open('e:/data/emadr/el/tmp2.txt', 'wb')
+    for tup in candidates_list:
+        f.write(tup[0])
+        for v in tup[1]:
+            f.write(' %s' % v)
+        f.write('\n')
+    f.close()
+
+
 def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     mid_eid_dict = load_mid_eid_file(mid_eid_file)
     label_dict = load_gold_label_file(gold_label_file)
@@ -48,6 +59,7 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     print num_docs
     fout = open(dst_file, 'wb')
     np.asarray([num_docs, vec_dim], np.int32).tofile(fout)
+    candidates_list = list()
     for i in xrange(num_docs):
         doc_id = ioutils.read_str_with_byte_len(fin)
         doc_vec = np.fromfile(fin, '>f4', vec_dim)
@@ -69,21 +81,30 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
 
             gold_label = label_dict[qid]
 
+            cur_candidates = list()
+            cur_candidates_tup = (qid, cur_candidates)
+            candidates_list.append(cur_candidates_tup)
+
             hit_idx = -1
             commonness = list()
             candidate_vecs = list()
             eids = list()
             all_nil = True
+            non_nil_cnt = -1
             for k in xrange(num_candidates):
                 mid = ioutils.read_str_with_fixed_len(fin, 8)
                 eid = mid_eid_dict.get(mid, 'NILL')
                 if eid != 'NILL':
                     all_nil = False
+                    non_nil_cnt += 1
+
+                cur_candidates.append(eid)
 
                 if k == 0 and eid == 'NILL':
                     tmp_fout.write(qid + '\t' + eid + '\n')
                 if eid == gold_label:
-                    hit_idx = k
+                    # hit_idx = k
+                    hit_idx = non_nil_cnt
 
                 cur_com = np.fromfile(fin, '>f4', 1)
                 # print cur_com
@@ -97,6 +118,8 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
             else:
                 # mention_infos.append((qid, hit_idx, candidate_vecs, eids))
                 mention_infos.append((hit_idx, commonness, candidate_vecs))
+                # print commonness
+                # print
                 if hit_idx == 0:
                     fh_cnt += 1
 
@@ -120,6 +143,9 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     fin.close()
     fout.close()
     tmp_fout.close()
+
+    candidates_list.sort(key=lambda x: x[0])
+    __print_candidates(candidates_list)
 
     num_queries = len(label_dict)
     num_non_nil_queries = num_queries - nil_cnt
@@ -207,20 +233,25 @@ def simple_link():
 
 
 def __test():
-    filename = 'e:/data/emadr/el/tac/2010/eval/dw.bin'
-    # filename = 'e:/data/emadr/20ng_bydate/bin/dw.bin'
-    f = open(filename, 'rb')
-    num_left, num_right = np.fromfile(f, '<i4', 2)
-    print num_left, num_right
-    for i in xrange(num_left):
-        num_adj = np.fromfile(f, '<i4', 1)
-        print num_adj
-        adjs = np.fromfile(f, '<i4', num_adj)
-        print adjs
-        weights = np.fromfile(f, '<u2', num_adj)
-        print weights
-        break
-    f.close()
+    f0 = open('e:/data/emadr/el/tmp1.txt', 'r')
+    f1 = open('e:/data/emadr/el/tmp2.txt', 'r')
+    for line0, line1 in izip(f0, f1):
+        vals0 = line0.strip().split(' ')
+        vals1 = line1.strip().split(' ')
+        c0 = [v for v in vals0[1:] if v != 'NILL']
+        c1 = [v for v in vals1[1:] if v != 'NILL']
+        if (c0 and not c1) or (c0 and c1 and c0[0] != c1[0]) or (c1 and not c0):
+            print c0
+            print c1
+        if len(c0) < len(c1):
+            print c0
+            print c1
+
+        # print vals0[0]
+        # print c0
+        # print c1
+    f0.close()
+    f1.close()
 
 
 def main():
@@ -253,7 +284,7 @@ def main():
     # vec_file = 'e:/dc/el/dwe_train/tac_' + file_tag + '.bin'
     # dst_file = 'e:/dc/el/dwe_train/tac_' + file_tag + '_wl.bin'
     # vec_file = 'e:/data/emadr/el/datasetbin/%d/%s_%d%s.bin' % (year, part, method, expand)
-    # dst_file = 'e:/data/emadr/el/datasetbin/%d/%s_%d%s_wl.bin' % (year, part, method, expand)
+    # dst_file = 'e:/data/emadr/el/datasetbin/%d/%s_%d%s_wl_bak.bin' % (year, part, method, expand)
     vec_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d.bin' % (year, part, method)
     dst_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d_wl.bin' % (year, part, method)
 

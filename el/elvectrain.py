@@ -174,7 +174,7 @@ def load_data(dataset):
 
 
 def train_el():
-    year = 2010
+    year = 2009
     method = 3
     num_mentions = 1020.0 if year == 2010 else 1675.0
     if year == 2009:
@@ -187,9 +187,9 @@ def train_el():
         # datasets_train = ['e:/dc/el/dwe_train/tac_2010_train_%d_wl.bin' % method]
         # datasets_train = ['e:/dc/el/dwe_train/tac_2009_eval_%d_wl.bin' % method,
         # 'e:/dc/el/dwe_train/tac_2014_eval_wl.bin']]
-        # datasets_train = ['e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method]
+        datasets_train = ['e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method]
         data_set_test = 'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method
-        datasets_train = ['e:/data/emadr/el/datasetbin/2009/eval_%d_wl.bin' % method]
+        # datasets_train = ['e:/data/emadr/el/datasetbin/2009/eval_%d_wl.bin' % method]
         # data_set_test = 'e:/data/emadr/el/datasetbin/2010/eval_%d_wl.bin' % method
     else:
         datasets_train = ['e:/data/emadr/el/datasetbin/tac_2009_eval_%d_wl.bin' % method]

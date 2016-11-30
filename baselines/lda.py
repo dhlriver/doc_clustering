@@ -22,6 +22,38 @@ def __train_lda_model(dict_file, mm_corpus_file, dst_model_file, num_topics=20):
     lda_model.save(dst_model_file)
 
 
+def __eval_lda_clustering(lda_model, mm_corpus, gold_labels):
+    # lda_model = gensim.models.ldamodel.LdaModel.load(model_file)
+    sys_labels = list()
+    for i, doc in enumerate(mm_corpus):
+        topic_dist = lda_model[doc]
+        # print topic_dist
+        cluster_idx = 0
+        max_dist = 0
+        for tup in topic_dist:
+            if tup[1] > max_dist:
+                cluster_idx = tup[0]
+                max_dist = tup[1]
+        sys_labels.append(cluster_idx)
+        if len(sys_labels) % 5000 == 0:
+            print len(sys_labels)
+        # if i > 10:
+        #     break
+    # print len(sys_labels)
+    # print len(gold_labels)
+
+    nmi_score = normalized_mutual_info_score(gold_labels, sys_labels)
+    purity_score = purity(gold_labels, sys_labels)
+    ri_score = rand_index(gold_labels, sys_labels)
+
+    # print 'NMI: %f' % normalized_mutual_info_score(gold_labels, sys_labels)
+    # print 'Purity: %f' % purity(gold_labels, sys_labels)
+    # print 'Accuracy: %f' % cluster_accuracy(gold_labels, sys_labels)
+
+    print 'NMI: %f Purity: %f Rand index: %f' % (nmi_score, purity_score, ri_score)
+    return nmi_score, purity_score, ri_score
+
+
 def __eval_lda_clustering_20ng():
     text_doc_file = 'e:/dc/20ng_bydate/twe/docs-nl.txt'
     dict_file = 'e:/dc/20ng_bydate/lda/all-docs.dict'
@@ -61,38 +93,6 @@ def __eval_lda_clustering_20ng():
     print len(gold_labels)
     print normalized_mutual_info_score(gold_labels, sys_labels)
     print cluster_accuracy(gold_labels, sys_labels)
-
-
-def __eval_lda_clustering(lda_model, mm_corpus, gold_labels):
-    # lda_model = gensim.models.ldamodel.LdaModel.load(model_file)
-    sys_labels = list()
-    for i, doc in enumerate(mm_corpus):
-        topic_dist = lda_model[doc]
-        # print topic_dist
-        cluster_idx = 0
-        max_dist = 0
-        for tup in topic_dist:
-            if tup[1] > max_dist:
-                cluster_idx = tup[0]
-                max_dist = tup[1]
-        sys_labels.append(cluster_idx)
-        if len(sys_labels) % 5000 == 0:
-            print len(sys_labels)
-        # if i > 10:
-        #     break
-    # print len(sys_labels)
-    # print len(gold_labels)
-
-    nmi_score = normalized_mutual_info_score(gold_labels, sys_labels)
-    purity_score = purity(gold_labels, sys_labels)
-    ri_score = rand_index(gold_labels, sys_labels)
-
-    # print 'NMI: %f' % normalized_mutual_info_score(gold_labels, sys_labels)
-    # print 'Purity: %f' % purity(gold_labels, sys_labels)
-    # print 'Accuracy: %f' % cluster_accuracy(gold_labels, sys_labels)
-
-    print 'NMI: %f Purity: %f Rand index: %f' % (nmi_score, purity_score, ri_score)
-    return nmi_score, purity_score, ri_score
 
 
 def lda():

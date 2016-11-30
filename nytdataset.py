@@ -151,22 +151,39 @@ def __gen_words_dict_nyt():
 def __gen_lowercase_token_file_nyt():
     tokenized_line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized.txt'
     proper_word_cnts_dict_file = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
+    dataset_split_file = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
     max_word_len = 20
     min_occurrance = 2
-    dst_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-%d.txt' % min_occurrance
-    textutils.gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dict_file,
-                                       max_word_len, min_occurrance, dst_file_name)
+    all_doc_text_file = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-%d.txt' % min_occurrance
+    test_doc_text_file = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-test-%d.txt' % min_occurrance
+    train_doc_text_file = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-train-%d.txt' % min_occurrance
+
+    # textutils.gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dict_file,
+    #                                    max_word_len, min_occurrance, all_doc_text_file)
+
+    textutils.split_docs_text_file_by_dataset_labels(all_doc_text_file, dataset_split_file, train_doc_text_file,
+                                                     test_doc_text_file)
 
 
 def __gen_dw_nyt():
-    min_occurrance = 2
-    line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-%d.txt' % min_occurrance
+    min_occurrence = 50
     proper_word_cnts_dict_file = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
-    dst_bow_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/dw-%d.bin' % min_occurrance
-    textutils.line_docs_to_bow(line_docs_file_name, proper_word_cnts_dict_file, min_occurrance, dst_bow_docs_file_name)
 
-    dst_word_cnts_file = 'e:/data/emadr/nyt-world-full/processed/bin/word-cnts-%d.bin' % min_occurrance
-    textutils.gen_word_cnts_file_from_bow_file(dst_bow_docs_file_name, dst_word_cnts_file)
+    line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-2.txt'
+    dst_bow_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/dw-%d.bin' % min_occurrence
+
+    words_dict = textutils.load_words_to_idx_dict(proper_word_cnts_dict_file, min_occurrence)
+    # textutils.line_docs_to_bow(line_docs_file_name, words_dict, min_occurrence, dst_bow_docs_file_name)
+
+    dst_word_cnts_file = 'e:/data/emadr/nyt-world-full/processed/bin/word-cnts-%d.bin' % min_occurrence
+    # textutils.gen_word_cnts_file_from_bow_file(dst_bow_docs_file_name, dst_word_cnts_file)
+
+    train_doc_text_file = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-train-2.txt'
+    test_doc_text_file = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-test-2.txt'
+    dst_train_dw_file = 'e:/data/emadr/nyt-world-full/processed/bin/dw-train-%d.bin' % min_occurrence
+    dst_test_dw_file = 'e:/data/emadr/nyt-world-full/processed/bin/dw-test-%d.bin' % min_occurrence
+    textutils.line_docs_to_bow(train_doc_text_file, words_dict, min_occurrence, dst_train_dw_file)
+    textutils.line_docs_to_bow(test_doc_text_file, words_dict, min_occurrence, dst_test_dw_file)
 
 
 def retrieve_mentions():
@@ -288,7 +305,7 @@ def __test():
 
 
 if __name__ == '__main__':
-    __test()
+    # __test()
     # __nyt_dataset_merge()
     # __setup_entity_pairs_file()
     # __gen_data_split_labels_file()
@@ -296,9 +313,9 @@ if __name__ == '__main__':
     # __gen_word_cnts_dict()
     # __gen_words_dict_nyt()
     # __gen_lowercase_token_file_nyt()
-    # __gen_dw_nyt()
+    __gen_dw_nyt()
 
-    __classification()
+    # __classification()
 
     # gen_bow_file()
 

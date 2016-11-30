@@ -176,7 +176,9 @@ def tac_el_job_14eval():
     #                                              max_word_len, tokenized_line_docs_lc_file)
 
     bow_docs_file = 'e:/dc/el/tac/tac_2014_eval_docs_bow.bin'
-    textutils.line_docs_to_bow(tokenized_line_docs_lc_file, proper_word_cnts_dict_file, bow_docs_file)
+    min_occurrence = 2
+    words_dict = textutils.load_words_to_idx_dict(proper_word_cnts_dict_file, min_occurrence)
+    textutils.line_docs_to_bow(tokenized_line_docs_lc_file, words_dict, bow_docs_file)  # TODO update
 
 
 def clean_line_wiki_docs_file():

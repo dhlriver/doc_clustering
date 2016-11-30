@@ -127,31 +127,10 @@ def do_gen_word_dict():
     gen_word_dict(words_doc_file, dst_dict_file_name)
 
 
-def all_line_docs_to_net():
-    line_docs_file_name = 'e:/dc/20ng_bydate/doc_text_data.txt'
-    word_dict_file_name = 'e:/dc/20ng_bydate/words_dict.txt'
-    # dst_bin_file_name = 'e:/dc/20ng_bydate/all_docs_dw_net.bin'
-    dst_dw_file_name = 'e:/dc/20ng_bydate/all_docs_dw_net_short.bin'
-    dst_word_indices_doc_file_name = 'e:/dc/20ng_bydate/all_docs_wi.txt'
-    # line_docs_to_net(line_docs_file_name, word_dict_file_name, dst_dw_file_name, dst_word_indices_doc_file_name)
-
-    word_cnts_file_for_ns = 'e:/dc/20ng_bydate/word_cnts.bin'
-    textutils.gen_word_cnts_file_from_bow_file(dst_dw_file_name, word_cnts_file_for_ns)
-
-
 def process_docs_final():
     docs_file_name = 'e:/dc/20ng_bydate/doc_text.txt'
     dst_file_name = 'e:dc/20ng_bydate/doc_text_data.txt'
     to_processed_docs_final(docs_file_name, dst_file_name)
-
-
-def main():
-    # do_gen_word_dict()
-    # process_docs_final()
-    all_line_docs_to_net()
-    # do_line_docs_to_net_split()
-    # train_lines_doc_to_net()
-    # test_lines_doc_to_net()
 
 
 def test():
@@ -167,4 +146,9 @@ def test():
 
 if __name__ == '__main__':
     test()
-    # main()
+    # do_gen_word_dict()
+    # process_docs_final()
+    # all_line_docs_to_net()
+    # do_line_docs_to_net_split()
+    # train_lines_doc_to_net()
+    # test_lines_doc_to_net()

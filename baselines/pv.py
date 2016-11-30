@@ -1,6 +1,8 @@
 import gensim
 import numpy as np
 import ioutils
+import dataarange
+from textclassification import doc_classification
 
 
 def save_doc2vec_vectors(model, dst_vecs_file_name):
@@ -39,20 +41,40 @@ def train_doc_vectors(docs_file_name):
     return model
 
 
-def train_20ng_doc_vectors():
-    docs_file = 'e:dc/20ng_bydate/doc_text_data.txt'
+def __train_pv_20ng():
+    docs_file = 'e:/data/emadr/20ng_bydate/doc_text_data.txt'
     # docs_file_name = 'e:dc/20ng_data/all_docs_wi.txt'
-    dst_vecs_file = 'e:dc/20ng_bydate/vecs/dbow_doc_vecs.bin'
+    dst_vecs_file = 'e:/data/emadr/20ng_bydate/bin/pvdbow-vecs.bin'
+    # model = train_doc_vectors(docs_file)
+    # save_doc2vec_vectors(model, dst_vecs_file)
+
+    split_labels_file_name = 'e:/data/emadr/20ng_bydate/doc_split_labels.bin'
+    train_vecs_file_name = 'e:/data/emadr/20ng_bydate/bin/train-pvdbow-vecs.bin'
+    test_vecs_file_name = 'e:/data/emadr/20ng_bydate/bin/test-pvdbow-vecs.bin'
+    dataarange.split_vecs(dst_vecs_file, split_labels_file_name, train_vecs_file_name, test_vecs_file_name)
+
+
+def __train_pv_nyt():
+    # docs_file = 'e:/dc/nyt-world-full/processed/docs_tokenized_lc.txt'
+    docs_file = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized-lc-2.txt'
+    dst_vecs_file = 'e:/data/emadr/nyt-world-full/processed/bin/pvdbow-vecs.bin'
     model = train_doc_vectors(docs_file)
     save_doc2vec_vectors(model, dst_vecs_file)
 
 
-def train_pv_nyt():
-    docs_file = 'e:/dc/nyt-world-full/processed/docs_tokenized_lc.txt'
-    dst_vecs_file = 'e:/dc/nyt-world-full/processed/vecs/pvdbow-vecs.bin'
-    model = train_doc_vectors(docs_file)
-    save_doc2vec_vectors(model, dst_vecs_file)
+def __classification():
+    all_vecs_file = 'e:/data/emadr/nyt-world-full/processed/bin/pvdbow-vecs.bin'
+    split_labels_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
+    train_label_file = 'e:/data/emadr/nyt-world-full/processed/bin/train-labels.bin'
+    test_label_file = 'e:/data/emadr/nyt-world-full/processed/bin/test-labels.bin'
+    train_vecs_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/train-pvdbow-vecs.bin'
+    test_vecs_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/test-pvdbow-vecs.bin'
+
+    dataarange.split_vecs(all_vecs_file, split_labels_file_name, train_vecs_file_name, test_vecs_file_name)
+    doc_classification(train_vecs_file_name, train_label_file, test_vecs_file_name,
+                       test_label_file, 0, -1)
 
 if __name__ == '__main__':
-    train_20ng_doc_vectors()
-    # train_pv_nyt()
+    __train_pv_20ng()
+    # __train_pv_nyt()
+    # __classification()

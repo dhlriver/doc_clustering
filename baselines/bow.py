@@ -36,8 +36,9 @@ def _get_idf_values(word_indices_list, word_cnts_list, num_words):
 def _bow_svm(train_bow_file_name, train_label_file_name, test_bow_file_name,
              test_label_file_name):
     print 'loading file ...'
-    train_word_indices_list, train_word_cnts_list, num_words = ioutils.load_bow_file(train_bow_file_name, False)
-    test_word_indices_list, test_word_cnts_list, num_words = ioutils.load_bow_file(test_bow_file_name, False)
+    uint16_cnts = True
+    train_word_indices_list, train_word_cnts_list, num_words = ioutils.load_bow_file(train_bow_file_name, uint16_cnts)
+    test_word_indices_list, test_word_cnts_list, num_words = ioutils.load_bow_file(test_bow_file_name, uint16_cnts)
     print num_words, 'words'
     idfs = _get_idf_values(train_word_indices_list, train_word_cnts_list, num_words)
     print idfs
@@ -57,10 +58,10 @@ def _bow_svm(train_bow_file_name, train_label_file_name, test_bow_file_name,
     print 'done.'
 
     y_pred = clf.predict(test_cm)
-    ftmp = open('e:/dc/20ng_data/tmp_labels.txt', 'wb')
-    for i in xrange(len(y_pred)):
-        ftmp.write(str(y_pred[i]) + '\t' + str(test_y[i]) + '\n')
-    ftmp.close()
+    # ftmp = open('e:/data/emadr/20ng_data/tmp_labels.txt', 'wb')
+    # for i in xrange(len(y_pred)):
+    #     ftmp.write(str(y_pred[i]) + '\t' + str(test_y[i]) + '\n')
+    # ftmp.close()
     print 'accuracy', accuracy_score(test_y, y_pred)
     print 'precision', precision_score(test_y, y_pred, average='macro')
     print 'recall', recall_score(test_y, y_pred, average='macro')
@@ -97,29 +98,43 @@ def bow_kmeans(bow_vecs, gold_labels, num_clusters):
     return nmi_score, purity_score, ri_score
 
 
-def bow_classification():
-    train_bow_file_name = 'e:/dc/20ng_bydate/bin/train_docs_dw_net.bin'
-    test_bow_file_name = 'e:/dc/20ng_bydate/bin/test_docs_dw_net.bin'
-    train_label_file = 'e:/dc/20ng_bydate/train_labels.bin'
-    test_label_file = 'e:/dc/20ng_bydate/test_labels.bin'
+def __bow_classification():
+    # train_bow_file_name = 'e:/dc/20ng_bydate/bin/train_docs_dw_net.bin'
+    # test_bow_file_name = 'e:/dc/20ng_bydate/bin/test_docs_dw_net.bin'
+    # train_label_file = 'e:/dc/20ng_bydate/train_labels.bin'
+    # test_label_file = 'e:/dc/20ng_bydate/test_labels.bin'
+
+    min_occurrence = 50
+    train_bow_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/dw-train-%d.bin' % min_occurrence
+    test_bow_file_name = 'e:/data/emadr/nyt-world-full/processed/bin/dw-test-%d.bin' % min_occurrence
+    train_label_file = 'e:/data/emadr/nyt-world-full/processed/bin/train-labels.bin'
+    test_label_file = 'e:/data/emadr/nyt-world-full/processed/bin/test-labels.bin'
     _bow_svm(train_bow_file_name, train_label_file, test_bow_file_name, test_label_file)
 
 
-def bow_clustering():
-    num_clusters_list = [5, 10, 15, 20]
-    dw_file = 'e:/dc/nyt-world-full/processed/bin/dw-30.bin'
-    gold_labels_file = 'e:/dc/nyt-world-full/processed/test/doc-labels.bin'
-    result_file = 'd:/documents/lab/paper-data/plot/bow-results-ri.csv'
+def __bow_clustering():
+    # num_clusters_list = [5, 10, 15, 20]
+    num_clusters_list = [5]
+
+    dw_file = 'e:/data/emadr/nyt-world-full/processed/bin/dw-50.bin'
+    gold_labels_file = 'e:/data/emadr/nyt-world-full/processed/doc-labels.bin'
+    result_file = 'd:/documents/lab/paper-data/plot/bow-results-ri-bak.csv'
+
+    dw_file = 'e:/data/emadr/20ng_bydate/bin/dw-test-50.bin'
+    gold_labels_file = 'e:/data/emadr/20ng_bydate/test_labels.bin'
+    result_file = 'd:/documents/lab/paper-data/plot/bow-results-20ng.csv'
 
     perf_list = list()
     gold_labels = ioutils.load_labels_file(gold_labels_file)
+    print len(gold_labels), gold_labels[:10]
     bow_vecs = __get_bow_vecs(dw_file)
+    print bow_vecs.shape
     for num_clusters in num_clusters_list:
         print num_clusters, 'clusters'
-        # nmi_score, purity_score, ri_score = bow_kmeans(bow_vecs, gold_labels, num_clusters)
-        # perf_list.append((num_clusters, nmi_score, purity_score, ri_score))
-    # write_clustering_perf_to_csv('BoW', perf_list, result_file)
+        nmi_score, purity_score, ri_score = bow_kmeans(bow_vecs, gold_labels, num_clusters)
+        perf_list.append((num_clusters, nmi_score, purity_score, ri_score))
+    write_clustering_perf_to_csv('BoW', perf_list, result_file)
 
 if __name__ == '__main__':
-    # bow_classification()
-    bow_clustering()
+    # __bow_classification()
+    __bow_clustering()

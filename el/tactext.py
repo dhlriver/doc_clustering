@@ -244,7 +244,9 @@ def __gen_tac_docs():
 
     textutils.gen_lowercase_token_file(tokenized_line_docs_file, proper_word_cnts_dict_file,
                                        max_word_len, 1, tokenized_line_docs_lc_file)
-    textutils.line_docs_to_bow(tokenized_line_docs_lc_file, proper_word_cnts_dict_file, 2, bow_docs_file)
+    min_occurrence = 2
+    words_dict = textutils.load_words_to_idx_dict(proper_word_cnts_dict_file, min_occurrence)
+    textutils.line_docs_to_bow(tokenized_line_docs_lc_file, words_dict, min_occurrence, bow_docs_file)
 
     # dst_word_cnts_file = 'e:/data/emadr/el/tac/%d/%s/word_cnts.bin' % (year, part)
     # textutils.gen_word_cnts_file_from_bow_file(bow_docs_file, dst_word_cnts_file)

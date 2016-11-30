@@ -1,7 +1,27 @@
 import numpy as np
+from itertools import izip
 import ioutils
+from ioutils import load_labels_file
 
 sentence_end_words = ['.', '?', '<s>', '!']
+
+
+def split_docs_text_file_by_dataset_labels(doc_text_file, dataset_split_file,
+                                           dst_train_doc_text_file, dst_test_doc_text_file):
+    data_split_labels = load_labels_file(dataset_split_file)
+    print data_split_labels[:10]
+    print len(data_split_labels)
+    fin = open(doc_text_file, 'r')
+    ftrain = open(dst_train_doc_text_file, 'wb')
+    ftest = open(dst_test_doc_text_file, 'wb')
+    for l, line in izip(data_split_labels, fin):
+        if l == 0:
+            ftrain.write(line)
+        else:
+            ftest.write(line)
+    fin.close()
+    ftrain.close()
+    ftest.close()
 
 
 def split_line_docs_file(file_name, dst_files):
@@ -277,14 +297,14 @@ def gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dic
     fout.close()
 
 
-def line_docs_to_bow(line_docs_file_name, proper_word_cnts_dict_file, min_occurance, dst_bow_docs_file_name):
+def line_docs_to_bow(line_docs_file_name, words_dict, min_occurance, dst_bow_docs_file_name):
     # fin = open(proper_word_cnts_dict_file, 'rb')
     # words_dict = dict()
     # for idx, line in enumerate(fin):
     #     vals = line.strip().split('\t')
     #     words_dict[vals[0]] = idx
     # fin.close()
-    words_dict = load_words_to_idx_dict(proper_word_cnts_dict_file, min_occurance)
+    # words_dict = load_words_to_idx_dict(proper_word_cnts_dict_file, min_occurance)
 
     line_cnt = 0
     word_cnt = 0

@@ -166,15 +166,51 @@ def gen_files_for_twe():
     textutils.filter_words_in_line_docs(text_file, words_dict_file, lda_input_file)
 
 
+def __gen_lowercase_token_file():
+    tokenized_line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized.txt'
+    proper_word_cnts_dict_file = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
+    dataset_split_file = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
+    max_word_len = 20
+    min_occurrence = 2
+    all_doc_text_file = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc.txt'
+    test_doc_text_file = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc-test.txt'
+    train_doc_text_file = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc-train.txt'
+
+    # textutils.gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dict_file,
+    #                                    max_word_len, min_occurrance, all_doc_text_file)
+
+    textutils.split_docs_text_file_by_dataset_labels(all_doc_text_file, dataset_split_file, train_doc_text_file,
+                                                     test_doc_text_file)
+
+
+def __gen_dw():
+    min_occurrence = 50
+    proper_word_cnts_dict_file = 'e:/data/emadr/20ng_bydate/words-dict-lc.txt'
+
+    line_docs_file_name = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc.txt'
+    dst_bow_docs_file_name = 'e:/data/emadr/20ng_bydate/bin/dw-%d.bin' % min_occurrence
+
+    words_dict = textutils.load_words_to_idx_dict(proper_word_cnts_dict_file, min_occurrence)
+    # textutils.line_docs_to_bow(line_docs_file_name, words_dict, min_occurrence, dst_bow_docs_file_name)
+
+    dst_word_cnts_file = 'e:/data/emadr/20ng_bydate/bin/word-cnts-%d.bin' % min_occurrence
+    # textutils.gen_word_cnts_file_from_bow_file(dst_bow_docs_file_name, dst_word_cnts_file)
+
+    train_doc_text_file = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc-train.txt'
+    test_doc_text_file = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc-test.txt'
+    dst_train_dw_file = 'e:/data/emadr/20ng_bydate/bin/dw-train-%d.bin' % min_occurrence
+    dst_test_dw_file = 'e:/data/emadr/20ng_bydate/bin/dw-test-%d.bin' % min_occurrence
+    textutils.line_docs_to_bow(train_doc_text_file, words_dict, min_occurrence, dst_train_dw_file)
+    textutils.line_docs_to_bow(test_doc_text_file, words_dict, min_occurrence, dst_test_dw_file)
+
+
 def __test():
     print 'test'
 
-
-def main():
-    __test()
+if __name__ == '__main__':
+    # __test()
+    # __gen_lowercase_token_file()
+    __gen_dw()
     # make_bydate_dataset_info()
     # setup_entity_pairs_file()
     # gen_files_for_twe()
-
-if __name__ == '__main__':
-    main()
