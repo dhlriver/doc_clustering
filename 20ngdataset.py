@@ -113,16 +113,20 @@ def pack_docs_for_ner(doc_list_file, dst_file):
     fout.close()
 
 
-def make_bydate_dataset_info():
+def __make_bydate_dataset_info():
     dir_path = 'e:/dc/20news-bydate'
     dst_path_list_file = 'e:/dc/20ng_bydate/all_doc_path_list.txt'
     dst_class_labels_file = 'e:/dc/20ng_bydate/all_doc_class_labels.bin'
-    dst_split_labels_file = 'e:/dc/20ng_bydate/doc_split_labels.bin'
-    dst_train_labels_file = 'e:/dc/20ng_bydate/train_labels.bin'
-    dst_test_labels_file = 'e:/dc/20ng_bydate/test_labels.bin'
-    index_20ng_bydate(dir_path, dst_path_list_file, dst_class_labels_file,
-                      dst_split_labels_file, dst_train_labels_file,
-                      dst_test_labels_file)
+    dst_split_labels_file = 'e:/data/emadr/20ng_bydate/doc_split_labels.bin'
+    dst_train_labels_file = 'e:/data/emadr/20ng_bydate/train_labels.bin'
+    dst_test_labels_file = 'e:/data/emadr/20ng_bydate/test_labels.bin'
+    # index_20ng_bydate(dir_path, dst_path_list_file, dst_class_labels_file,
+    #                   dst_split_labels_file, dst_train_labels_file,
+    #                   dst_test_labels_file)
+    split_labels = ioutils.load_labels_file(dst_split_labels_file)
+    train_labels = ioutils.load_labels_file(dst_train_labels_file)
+    test_labels = ioutils.load_labels_file(dst_test_labels_file)
+    print len(split_labels), len(train_labels), len(test_labels)
 
 
 def setup_entity_pairs_file():
@@ -167,9 +171,7 @@ def gen_files_for_twe():
 
 
 def __gen_lowercase_token_file():
-    tokenized_line_docs_file_name = 'e:/data/emadr/nyt-world-full/processed/docs-tokenized.txt'
-    proper_word_cnts_dict_file = 'e:/data/emadr/nyt-world-full/processed/words_dict_proper.txt'
-    dataset_split_file = 'e:/data/emadr/nyt-world-full/processed/bin/data-split-labels.bin'
+    dataset_split_file = 'e:/data/emadr/20ng_bydate/data-split-labels.bin'
     max_word_len = 20
     min_occurrence = 2
     all_doc_text_file = 'e:/data/emadr/20ng_bydate/docs-tokenized-lc.txt'
@@ -208,9 +210,9 @@ def __test():
     print 'test'
 
 if __name__ == '__main__':
-    # __test()
+    # __make_bydate_dataset_info()
     # __gen_lowercase_token_file()
     __gen_dw()
-    # make_bydate_dataset_info()
     # setup_entity_pairs_file()
     # gen_files_for_twe()
+    # __test()

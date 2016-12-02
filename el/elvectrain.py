@@ -7,6 +7,7 @@ import six.moves.cPickle as pickle
 import scipy.spatial
 import timeit
 from eltune import ELTune
+from itertools import izip
 
 
 def load_el_data(dataset):
@@ -141,12 +142,20 @@ def load_el_data_for_theano_test(dataset, max_num_candidates=40):
             #     target_cnd_vecs[cur_mention_idx][l][:] = np.ones(dim, dtype=theano.config.floatX)
             cur_mention_idx += 1
 
-    target_indices = theano.shared(np.asarray(target_indices, dtype=np.int32), borrow=True)
+    target_indices_var = theano.shared(np.asarray(target_indices, dtype=np.int32), borrow=True)
     target_mentions_vecs = theano.shared(np.asarray(target_mentions_vecs, dtype=theano.config.floatX), borrow=True)
     target_commonness = theano.shared(np.asarray(target_commonness, dtype=theano.config.floatX), borrow=True)
     target_cnd_vecs = theano.shared(np.asarray(target_cnd_vecs, dtype=theano.config.floatX), borrow=True)
 
-    return target_indices, target_mentions_vecs, target_commonness, target_cnd_vecs, num_candidates
+    return target_indices_var, target_mentions_vecs, target_commonness, target_cnd_vecs, num_candidates, target_indices
+
+
+def __num_hits(y_pred, y_true):
+    cnt = 0
+    for y0, y1 in izip(y_pred, y_true):
+        if y0 == y1:
+            cnt += 1
+    return cnt
 
 
 def load_data(dataset):
@@ -174,49 +183,44 @@ def load_data(dataset):
 
 
 def train_el():
-    year = 2009
+    year = 2010
     method = 3
-    num_mentions = 1020.0 if year == 2010 else 1675.0
+
+    datasets_train = []
+    dataset_val, dataset_test = '', ''
+    num_mentions_val, num_mentions_test = 1.0, 1.0
     if year == 2009:
         datasets_train = [# 'e:/dc/el/dwe_train/tac_2010_train_%d_wl.bin' % method,
                           'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method]
-        data_set_test = 'e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method
+        dataset_val = 'e:/data/emadr/el/tac/2011/eval/eval_%d_wl.bin' % method
+        dataset_test = 'e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method
+        num_mentions_val = 2250.0
+        num_mentions_test = 1675.0
     elif year == 2010:
-        # datasets_train = ['e:/dc/el/dwe_train/tac_2010_train_%d_wl.bin' % method,
-        #                   'e:/dc/el/dwe_train/tac_2009_eval_%d_wl.bin' % method]
-        # datasets_train = ['e:/dc/el/dwe_train/tac_2010_train_%d_wl.bin' % method]
-        # datasets_train = ['e:/dc/el/dwe_train/tac_2009_eval_%d_wl.bin' % method,
-        # 'e:/dc/el/dwe_train/tac_2014_eval_wl.bin']]
         datasets_train = ['e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method]
-        data_set_test = 'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method
-        # datasets_train = ['e:/data/emadr/el/datasetbin/2009/eval_%d_wl.bin' % method]
-        # data_set_test = 'e:/data/emadr/el/datasetbin/2010/eval_%d_wl.bin' % method
-    else:
-        datasets_train = ['e:/data/emadr/el/datasetbin/tac_2009_eval_%d_wl.bin' % method]
-        data_set_test = 'e:/data/emadr/el/datasetbin/tac_2014_eval_wl.bin'
-
-    # data_set_train = 'e:/dc/el/dwe_train/tac_2014_train_wl.bin'
-    # data_set_test = 'e:/dc/el/dwe_train/tac_2014_eval_wl.bin'
-    # datasets_train = ['e:/dc/el/dwe_train/tac_2010_train_wl.bin',
-    #                   'e:/dc/el/dwe_train/tac_2014_train_wl.bin',
-    #                   'e:/dc/el/dwe_train/tac_2010_eval_wl.bin']
-    # datasets_train = ['e:/dc/el/dwe_train/tac_2010_train_wl.bin']
-    # datasets_train = ['e:/dc/el/dwe_train/tac_2014_train_wl.bin',
-    #                   'e:/dc/el/dwe_train/tac_2009_eval_2_wl.bin']
-    # data_set_test = 'e:/dc/el/dwe_train/tac_2010_eval_wl.bin'
-
-    # data_set_test = 'e:/dc/el/dwe_train/tac_2014_eval_wl.bin'
-
-    # doc_vecs, gold_indices, vec_cnds = load_el_data(data_set_file)
-    # fh_cnt = 0
-    # for indices in gold_indices:
-    #     fh_cnt += np.equal(indices, np.zeros(len(indices), np.int32)).sum()
-    # print fh_cnt
+        dataset_val = 'e:/data/emadr/el/tac/2011/eval/eval_%d_wl.bin' % method
+        dataset_test = 'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method
+        num_mentions_val = 2250.0
+        num_mentions_test = 1020.0
+    elif year == 2011:
+        datasets_train = ['e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method]
+        dataset_val = 'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method
+        dataset_test = 'e:/data/emadr/el/tac/2011/eval/eval_%d_wl.bin' % method
+        num_mentions_val = 1020.0
+        num_mentions_test = 2250.0
+    # else:
+    #     datasets_train = ['e:/data/emadr/el/datasetbin/tac_2009_eval_%d_wl.bin' % method]
+    #     dataset_val = 'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method
+    #     dataset_test = 'e:/data/emadr/el/datasetbin/tac_2014_eval_wl.bin'
 
     max_num_candidates = 50
-    test_indices, test_mentions_vecs, test_commonness, test_cnd_vecs, num_candidates = load_el_data_for_theano_test(
-            data_set_test, max_num_candidates)
-    mask_matrix = ELTune.get_mask_matrix(num_candidates, max_num_candidates)
+    val_indices_var, val_mentions_vecs, val_commonness, val_cnd_vecs, val_num_candidates, val_y = \
+        load_el_data_for_theano_test(dataset_val, max_num_candidates)
+    test_indices_var, test_mentions_vecs, test_commonness, test_cnd_vecs, test_num_candidates, test_y = \
+        load_el_data_for_theano_test(dataset_test, max_num_candidates)
+
+    mask_matrix_test = ELTune.get_mask_matrix(test_num_candidates, max_num_candidates)
+    mask_matrix_val = ELTune.get_mask_matrix(val_num_candidates, max_num_candidates)
     # print num_hit.eval()
     train_mention_vecs, train_gold_vecs, train_crpt_vecs, train_gold_cmns, train_crpt_cmns = \
         load_el_data_for_theano_train(datasets_train)
@@ -260,8 +264,11 @@ def train_el():
         }
     )
 
-    num_hit = elt.num_hits(test_mentions_vecs, test_cnd_vecs, test_commonness, test_indices, mask_matrix)
-    test_model = theano.function([], num_hit)
+    val_y_pred = elt.y_pred(val_mentions_vecs, val_cnd_vecs, val_commonness, val_indices_var, mask_matrix_val)
+    val_model_y_pred = theano.function([], val_y_pred)
+
+    test_y_pred = elt.y_pred(test_mentions_vecs, test_cnd_vecs, test_commonness, test_indices_var, mask_matrix_test)
+    test_model_y_pred = theano.function([], test_y_pred)
 
     print 'done'
 
@@ -274,10 +281,18 @@ def train_el():
         for minibatch_index in xrange(n_train_batches):
             minibatch_avg_cost = train_model(minibatch_index)
             sum_cost += minibatch_avg_cost
-        cur_correct = test_model()
-        print epoch, cur_correct, cur_correct / num_mentions
-        if cur_correct > max_correct:
-            max_correct = cur_correct
+
+        cur_val_y_pred = test_model_y_pred()
+        cur_correct_val = __num_hits(cur_val_y_pred, val_y)
+
+        cur_y_pred = test_model_y_pred()
+        cur_correct_test = __num_hits(cur_y_pred, test_y)
+
+        print 'epoch: %d, val: %d %f, test: %d %f' % (epoch, cur_correct_val, cur_correct_val / num_mentions_val,
+                                                      cur_correct_test, cur_correct_test / num_mentions_test)
+        # print epoch, cur_correct, cur_correct / num_mentions
+        # if cur_correct > max_correct:
+        #     max_correct = cur_correct
         print sum_cost
     print 'max', max_correct
 

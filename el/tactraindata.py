@@ -4,7 +4,7 @@ import ioutils
 from itertools import izip
 
 
-def load_gold_label_file(label_file):
+def load_gold_id_file(label_file):
     fin = open(label_file, 'rb')
     label_dict = dict()
     for line in fin:
@@ -41,6 +41,62 @@ def __print_candidates(candidates_list):
             f.write(' %s' % v)
         f.write('\n')
     f.close()
+
+
+def __load_mention_info(fin, vec_dim):
+    qid = ioutils.read_str_with_byte_len(fin)
+    # print qid
+    # if qid == '':
+    #     print doc_id, j, num_mentions
+    # gold_label = 'NIL'
+
+    candidates = list()
+    num_candidates = np.fromfile(fin, '>i4', 1)
+    for k in xrange(num_candidates):
+        mid = ioutils.read_str_with_fixed_len(fin, 8)
+        commonness = np.fromfile(fin, '>f4', 1)
+        vec = np.fromfile(fin, '>f4', vec_dim)
+        candidates.append((mid, commonness, vec))
+    return qid, candidates
+
+
+# make data for training, NIL mentions will be filtered
+def __make_labeled_data(vec_train_file, gold_label_file, mid_eid_file, dst_file):
+    mid_eid_dict = load_mid_eid_file(mid_eid_file)
+    gold_id_dict = load_gold_id_file(gold_label_file)
+
+    vec_dim = 100
+
+    fin = open(vec_train_file, 'rb')
+    num_docs = np.fromfile(fin, '>i4', 1)
+    print num_docs, 'documents'
+
+    fout = open(dst_file, 'wb')
+    np.asarray([num_docs, vec_dim], np.int32).tofile(fout)
+
+    # tmp_fout = open('e:/data/emadr/el/tmp_result.txt', 'wb')
+    total_num_mentions = 0
+    candidates_list = list()
+    for i in xrange(num_docs):
+        doc_id = ioutils.read_str_with_byte_len(fin)
+        doc_vec = np.fromfile(fin, '>f4', vec_dim)
+        # if i < 5:
+        #     print doc_vec
+
+        doc_vec.astype(np.float32).tofile(fout)
+
+        num_mentions = np.fromfile(fin, '>i4', 1)
+        total_num_mentions += num_mentions
+        for j in xrange(num_mentions):
+            qid, candidates = __load_mention_info(fin, vec_dim)
+            gold_id = gold_id_dict[qid]
+            print qid, gold_id
+            for candidate in candidates:
+                mid, commonness, vec = candidate
+                eid = mid_eid_dict.get(mid, '')
+                print '\t%s\t%f\t%s' % (mid, commonness, eid)
+    # tmp_fout.close()
+    print total_num_mentions
 
 
 def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
@@ -254,7 +310,7 @@ def __test():
     f1.close()
 
 
-def main():
+def __make_dataset_filter_nil():
     year = 2010
     part = 'eval'
     method = 3
@@ -292,7 +348,39 @@ def main():
     add_gold_label(vec_file, gold_label_file, mid_eid_file, dst_file)
 
 
+def __make_dataset_full():
+    year = 2010
+    part = 'eval'
+    method = 3
+    expand = ''
+    gold_label_file = ''
+    if year == 2014 and part == 'train':
+        gold_label_file = 'd:/data/el/LDC2015E20_EDL_2014/data/training/' \
+                          'tac_kbp_2014_english_EDL_training_KB_links.tab'
+    if year == 2014 and part == 'eval':
+        gold_label_file = 'd:/data/el/LDC2015E20_EDL_2014/data/eval/' \
+                          'tac_2014_kbp_english_EDL_evaluation_KB_links.tab'
+    if year == 2011 and part == 'eval':
+        gold_label_file = 'e:/data/el/LDC2015E19/data/2011/eval/' \
+                          'tac_kbp_2011_english_entity_linking_evaluation_KB_links.tab'
+    if year == 2010 and part == 'eval':
+        gold_label_file = 'd:/data/el/LDC2015E19/data/2010/eval/' \
+                          'tac_kbp_2010_english_entity_linking_evaluation_KB_links.tab'
+    if year == 2010 and part == 'train':
+        gold_label_file = 'd:/data/el/LDC2015E19/data/2010/training/' \
+                          'tac_kbp_2010_english_entity_linking_training_KB_links.tab'
+    if year == 2009 and part == 'eval':
+        gold_label_file = 'd:/data/el/LDC2015E19/data/2009/eval/' \
+                          'tac_kbp_2009_english_entity_linking_evaluation_KB_links.tab'
+
+    vec_train_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d.bin' % (year, part, method)
+    dst_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d_wl.bin' % (year, part, method)
+    mid_eid_file = 'd:/data/el/2014/mid_to_eid.ss'
+    __make_labeled_data(vec_train_file, gold_label_file, mid_eid_file, dst_file)
+
+
 if __name__ == '__main__':
-    main()
+    __make_dataset_full()
+    # __make_dataset_filter_nil()
     # simple_link()
     # __test()

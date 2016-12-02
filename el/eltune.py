@@ -19,7 +19,7 @@ class ELTune(object):
         self.l2_sqr = (self.hidden_layer.W ** 2).sum()
         self.params = [self.hidden_layer.W]
 
-    def num_hits(self, mention_vecs, candidate_vecs, commonness, y, mask_matrix):
+    def y_pred(self, mention_vecs, candidate_vecs, commonness, y, mask_matrix):
         mention_output = self.hidden_layer.get_output(mention_vecs)
         candidate_output = self.hidden_layer.get_output(candidate_vecs)
         # mention_output = mention_vecs
@@ -42,8 +42,9 @@ class ELTune(object):
 
         # scores = 0.3 * T.log(commonness) + 0.7 * T.log(sims)
         # scores = sims
-        sys_y = T.argmax(scores, 1)
-        return T.sum(T.eq(sys_y, y))
+        y_pred = T.argmax(scores, 1)
+        return y_pred
+        # return T.sum(T.eq(sys_y, y))
 
     def loss(self, mention_vecs, gold_vecs, crpt_vecs, cmns_gold, cmns_crpt, l2_reg):
         mention_output = self.hidden_layer.get_output(mention_vecs)

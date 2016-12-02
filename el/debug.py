@@ -212,10 +212,16 @@ def show_errors():
         print err_val[0], err_val[1], err_val[2], name[0], name[1]
 
 
-def main():
-    # test_mlp('e:/test_res/mnist.pkl.gz')
-    # filter_errors()
-    show_errors()
+def __test():
+    f = open('e:/data/emadr/el/tac/2011/eval/doc_vecs_3.bin', 'rb')
+    num, dim = np.fromfile(f, '<i4', 2)
+    for i in xrange(5):
+        vec = np.fromfile(f, '<f4', dim)
+        print vec
+    f.close()
 
 if __name__ == '__main__':
-    main()
+    # test_mlp('e:/test_res/mnist.pkl.gz')
+    # filter_errors()
+    # show_errors()
+    __test()
