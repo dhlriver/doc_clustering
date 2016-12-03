@@ -60,6 +60,26 @@ def __load_mention_info(fin, vec_dim):
     return qid, candidates
 
 
+def __write_mention_data(qid, gold_id, candidates, mid_eid_dict, fout):
+    ioutils.write_str_with_byte_len(qid, fout)
+    ioutils.write_str_with_byte_len(gold_id, fout)
+    np.asarray([len(candidates)], np.int32).tofile(fout)
+
+    eids, commonness_list, vecs = list(), list(), list()
+    for candidate in candidates:
+        mid, commonness, vec = candidate
+        eid = mid_eid_dict.get(mid, 'NIL')
+        eids.append(eid)
+        commonness_list.append(commonness)
+        vecs.append(vec)
+
+    for eid in eids:
+        ioutils.write_str_with_byte_len(eid, fout)
+    np.asarray(commonness_list, np.float32).tofile(fout)
+    for vec in vecs:
+        vec.tofile(fout)
+
+
 # make data for training, NIL mentions will be filtered
 def __make_labeled_data(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     mid_eid_dict = load_mid_eid_file(mid_eid_file)
@@ -86,11 +106,14 @@ def __make_labeled_data(vec_train_file, gold_label_file, mid_eid_file, dst_file)
         doc_vec.astype(np.float32).tofile(fout)
 
         num_mentions = np.fromfile(fin, '>i4', 1)
+        np.asarray([num_mentions], np.int32).tofile(fout)
+
         total_num_mentions += num_mentions
         for j in xrange(num_mentions):
             qid, candidates = __load_mention_info(fin, vec_dim)
             gold_id = gold_id_dict[qid]
             print qid, gold_id
+            __write_mention_data(qid, gold_id, candidates, mid_eid_dict, fout)
             for candidate in candidates:
                 mid, commonness, vec = candidate
                 eid = mid_eid_dict.get(mid, '')
@@ -101,7 +124,7 @@ def __make_labeled_data(vec_train_file, gold_label_file, mid_eid_file, dst_file)
 
 def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
     mid_eid_dict = load_mid_eid_file(mid_eid_file)
-    label_dict = load_gold_label_file(gold_label_file)
+    label_dict = load_gold_id_file(gold_label_file)
 
     vec_dim = 100
 
@@ -311,7 +334,7 @@ def __test():
 
 
 def __make_dataset_filter_nil():
-    year = 2010
+    year = 2009
     part = 'eval'
     method = 3
     expand = ''
@@ -344,7 +367,7 @@ def __make_dataset_filter_nil():
     vec_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d.bin' % (year, part, method)
     dst_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d_wl.bin' % (year, part, method)
 
-    mid_eid_file = 'd:/data/el/2014/mid_to_eid.ss'
+    mid_eid_file = 'e:/data/el/res/mid-to-eid.bin'
     add_gold_label(vec_file, gold_label_file, mid_eid_file, dst_file)
 
 
@@ -374,13 +397,13 @@ def __make_dataset_full():
                           'tac_kbp_2009_english_entity_linking_evaluation_KB_links.tab'
 
     vec_train_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d.bin' % (year, part, method)
-    dst_file = 'e:/data/emadr/el/tac/%d/%s/eval_%d_wl.bin' % (year, part, method)
+    dst_file = 'e:/data/emadr/el/tac/bindata/%d-%s-m%d-wl.bin' % (year, part, method)
     mid_eid_file = 'd:/data/el/2014/mid_to_eid.ss'
     __make_labeled_data(vec_train_file, gold_label_file, mid_eid_file, dst_file)
 
 
 if __name__ == '__main__':
-    __make_dataset_full()
-    # __make_dataset_filter_nil()
+    # __make_dataset_full()
+    __make_dataset_filter_nil()
     # simple_link()
     # __test()
