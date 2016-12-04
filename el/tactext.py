@@ -31,14 +31,21 @@ def __is_full_name(acronym, full_name):
     return True
 
 
+def __get_doc_id_from_path(docpath):
+    beg_pos = docpath.rfind('\\')
+    tmp = docpath.rfind('/')
+    beg_pos = beg_pos if beg_pos > tmp else tmp
+    if docpath.endswith('.nw.xml') or docpath.endswith('.df.xml'):
+        return docpath[beg_pos + 1:-7]
+    return docpath[beg_pos + 1:-4]
+
+
 def load_doc_entity_names(doc_list_file, doc_entity_name_file):
     doc_list = list()
     fin = open(doc_list_file, 'rb')
     for line in fin:
         line = line.strip()
-        if line.endswith('.xml'):
-            line = line[:-4]
-            doc_list.append(line)
+        doc_list.append(__get_doc_id_from_path(line))
     fin.close()
 
     entity_names_dict = dict()
@@ -75,7 +82,7 @@ def __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_que
                     print query_id, query_name, entity_name
                     query_name = entity_name
 
-        fout.write('  <query id="%s">\n<name>%s</name>\n<docid>%s</docid>\n  </query>\n'
+        fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
                    % (query_id, query_name, doc_id))
 
     fout.close()
@@ -252,22 +259,22 @@ def __gen_tac_docs():
     # textutils.gen_word_cnts_file_from_bow_file(bow_docs_file, dst_word_cnts_file)
 
 
-def job_acronym_expansion():
-    # query_file = r'D:\data\el\LDC2015E19\data\2009\eval\tac_kbp_2009' \
-    #              r'_english_entity_linking_evaluation_queries.xml'
-    # doc_list_file = 'e:/dc/el/tac/tac_2009_eval_docs_list.txt'
-    # doc_entity_name_file = 'e:/dc/el/tac/tac_2009_eval_entities.txt'
-    # dst_query_file = r'D:\data\el\LDC2015E19\data\2009\eval\queries_expanded.xml'
+def __job_acronym_expansion():
+    query_file = r'e:\data\el\LDC2015E19\data\2009\eval\tac_kbp_2009' \
+                 r'_english_entity_linking_evaluation_queries.xml'
+    doc_list_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/eng-docs-list-win.txt'
+    doc_entity_name_file = 'e:/data/emadr/el/tac/2009/tac_2009_eval_entities.txt'
+    dst_query_file = r'e:/data/el/LDC2015E19/data/2009/eval/data/queries_expanded.xml'
 
-    query_file = r'e:/dc/el/tac/2010/eval/queries.xml'
-    doc_list_file = 'e:/dc/el/tac/2010/eval/docs_list.txt'
-    doc_entity_name_file = 'e:/dc/el/tac/2010/eval/tac_2010_eval_entities.txt'
-    dst_query_file = r'e:/dc/el/tac/2010/eval/queries-expanded.xml'
+    # query_file = r'e:/dc/el/tac/2010/eval/queries.xml'
+    # doc_list_file = 'e:/dc/el/tac/2010/eval/docs_list.txt'
+    # doc_entity_name_file = 'e:/dc/el/tac/2010/eval/tac_2010_eval_entities.txt'
+    # dst_query_file = r'e:/dc/el/tac/2010/eval/queries-expanded.xml'
     __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_query_file)
 
 if __name__ == '__main__':
-    __gen_tac_docs()
+    # __gen_tac_docs()
     # __setup_doc_entities_file()
     # gen_doc_mention_names()
-    # job_acronym_expansion()
+    __job_acronym_expansion()
     # process_docs_for_ner()

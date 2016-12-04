@@ -37,8 +37,8 @@ class ELTune(object):
         # cos similarities
         sims = (c * m).sum(axis=2) + mask_matrix
         # scores = 0.1 * commonness + 0.9 * sims
-        # scores = 0.45 * commonness + 0.55 * sims
-        scores = 0.45 * commonness
+        scores = 0.45 * commonness + 0.55 * sims
+        # scores = 0.45 * commonness
         # scores = sims
 
         # scores = 0.3 * T.log(commonness) + 0.7 * T.log(sims)

@@ -3,164 +3,11 @@ import os
 import numpy as np
 import theano
 import theano.tensor as T
-import six.moves.cPickle as pickle
 import neunet
 import timeit
 import re
-
-
-def load_data(dataset):
-    print '... loading data'
-    with gzip.open(dataset, 'rb') as f:
-        train_set, valid_set, test_set = pickle.load(f)
-
-    def shared_dataset(data_xy, borrow=True):
-        data_x, data_y = data_xy
-        shared_x = theano.shared(np.asarray(data_x,
-                                            dtype=theano.config.floatX),
-                                 borrow=borrow)
-        shared_y = theano.shared(np.asarray(data_y,
-                                            dtype=theano.config.floatX),
-                                 borrow=borrow)
-        return shared_x, T.cast(shared_y, 'int32')
-
-    test_set_x, test_set_y = shared_dataset(test_set)
-    valid_set_x, valid_set_y = shared_dataset(valid_set)
-    train_set_x, train_set_y = shared_dataset(train_set)
-
-    rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
-            (test_set_x, test_set_y)]
-    return rval
-
-
-def test_mlp(dataset, learning_rate=0.01, l1_reg=0.00, l2_reg=0.0001, n_epochs=1000,
-             batch_size=20, n_hidden=500):
-    datasets = load_data(dataset)
-    train_set_x, train_set_y = datasets[0]
-    valid_set_x, valid_set_y = datasets[1]
-    test_set_x, test_set_y = datasets[2]
-
-    # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] // batch_size
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0] // batch_size
-
-    print '... building the model'
-
-    index = T.lscalar()
-    x = T.matrix('x')
-    y = T.ivector('y')
-
-    rng = np.random.RandomState(1234)
-
-    classifier = neunet.MLP(
-        rng=rng,
-        input_vecs=x,
-        n_in=28 * 28,
-        n_hidden=n_hidden,
-        n_out=10
-    )
-
-    cost = classifier.negative_log_likelihood(y) + l1_reg * classifier.L1 + l2_reg * classifier.L2_sqr
-
-    test_model = theano.function(
-        inputs=[index],
-        outputs=classifier.errors(y),
-        givens={
-            x: test_set_x[index * batch_size: (index + 1) * batch_size],
-            y: test_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-
-    validate_model = theano.function(
-        inputs=[index],
-        outputs=classifier.errors(y),
-        givens={
-            x: valid_set_x[index * batch_size: (index + 1) * batch_size],
-            y: valid_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-
-    gparams = [T.grad(cost, param) for param in classifier.params]
-
-    updates = [(param, param - learning_rate * gparam)
-               for param, gparam in zip(classifier.params, gparams)]
-
-    train_model = theano.function(
-        inputs=[index],
-        outputs=cost,
-        updates=updates,
-        givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size],
-            y: train_set_y[index * batch_size: (index + 1) * batch_size]
-        },
-        mode=theano.compile.mode.Mode(optimizer=None)
-    )
-
-    print('... training the model')
-    patience = 10000  # look as this many examples regardless
-    patience_increase = 2
-    improvement_threshold = 0.995
-    validation_frequency = min(n_train_batches, patience // 2)
-
-    best_validation_loss = np.inf
-    best_iter = 0
-    test_score = 0.
-    start_time = timeit.default_timer()
-
-    done_looping = False
-    epoch = 0
-    while (epoch < n_epochs) and (not done_looping):
-        epoch += 1
-        for minibatch_index in range(n_train_batches):
-            minibatch_avg_cost = train_model(minibatch_index)
-            # iteration number
-            cur_iter = (epoch - 1) * n_train_batches + minibatch_index
-
-            if (cur_iter + 1) % validation_frequency == 0:
-                # compute zero-one loss on validation set
-                validation_losses = [validate_model(i)
-                                     for i in range(n_valid_batches)]
-                this_validation_loss = np.mean(validation_losses)
-
-                print(
-                    'epoch %i, minibatch %i/%i, validation error %f %%' %
-                    (
-                        epoch,
-                        minibatch_index + 1,
-                        n_train_batches,
-                        this_validation_loss * 100.
-                    )
-                )
-
-                # if we got the best validation score until now
-                if this_validation_loss < best_validation_loss:
-                    if this_validation_loss < best_validation_loss *  \
-                       improvement_threshold:
-                        patience = max(patience, cur_iter * patience_increase)
-
-                    best_validation_loss = this_validation_loss
-                    best_iter = cur_iter
-
-                    test_losses = [test_model(i)
-                                   for i in range(n_test_batches)]
-                    test_score = np.mean(test_losses)
-
-                    print(('     epoch %i, minibatch %i/%i, test error of '
-                           'best model %f %%') %
-                          (epoch, minibatch_index + 1, n_train_batches,
-                           test_score * 100.))
-
-            if patience <= cur_iter:
-                done_looping = True
-                break
-
-    end_time = timeit.default_timer()
-    print(('Optimization complete. Best validation score of %f %% '
-           'obtained at iteration %i, with test performance %f %%') %
-          (best_validation_loss * 100., best_iter + 1, test_score * 100.))
-    print('The code for file ' + os.path.split(__file__)[1] +
-          ' ran for %.2fm' % ((end_time - start_time) / 60.))
+from elutils import load_gold_el, load_docs_info, load_eid_wid_file
+from mention import Mention
 
 
 def filter_errors():
@@ -212,6 +59,85 @@ def show_errors():
         print err_val[0], err_val[1], err_val[2], name[0], name[1]
 
 
+def __get_legal_kbids(kbids, keep_nil):
+    if keep_nil:
+        return range(len(kbids)), kbids
+
+    indices, legal_kbids = list(), list()
+    for i, kbid in enumerate(kbids):
+        if kbid.startswith('E'):
+            indices.append(i)
+            legal_kbids.append(kbid)
+    return indices, legal_kbids
+
+
+def __el_stat():
+    # data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-3.bin'
+    # gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
+    data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-3.bin'
+    gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
+    eid_wid_file = 'e:/data/el/res/eid_wid_ord_eid.txt'
+    keep_nil = False
+    only_show_not_in_candidate = True
+
+    eid_wid_dict = load_eid_wid_file(eid_wid_file)
+
+    # gold_el_result = load_gold_el(gold_file)
+    mentions = Mention.load_edl_file(gold_file)
+    qid_mention_dict = Mention.group_mentions_by_qid(mentions)
+    docs_info, dim = load_docs_info(data_file)
+
+    error_list = list()
+    num_mentions = 0
+    nil_hit_cnt, id_hit_cnt = 0, 0
+    for doc in docs_info:
+        docid, docvec, mentions = doc
+        for mention in mentions:
+            (qid, kbids, commonnesses, vecs) = mention
+
+            gold_mention = qid_mention_dict[qid]
+            gold_id = gold_mention.kbid
+            gold_id_is_nil = gold_id.startswith('NIL')
+            if not keep_nil and gold_id_is_nil:
+                continue
+            num_mentions += 1
+
+            indices, legal_kbids = __get_legal_kbids(kbids, keep_nil)
+
+            if gold_id_is_nil and (len(legal_kbids) == 0 or legal_kbids[0].startswith('m.')):
+                nil_hit_cnt += 1
+                continue
+
+            first_kbid = legal_kbids[0] if legal_kbids else 'NIL'
+
+            if first_kbid == gold_id:
+                id_hit_cnt += 1
+                continue
+
+            error_list.append((qid, gold_mention.name, gold_id, legal_kbids))
+
+    print 'INKB: %f' % (float(id_hit_cnt) / num_mentions)
+    print 'TOTAL: %f' % (float(id_hit_cnt + nil_hit_cnt) / num_mentions)
+
+    error_list.sort(key=lambda x: x[1])
+    for e in error_list:
+        qid, name, gold_id, legal_kbids = e
+        gold_wid = eid_wid_dict.get(gold_id, -1)
+        in_candidates = gold_id in legal_kbids
+
+        if only_show_not_in_candidate and in_candidates:
+            continue
+
+        if not in_candidates:
+            print 'not found'
+        print '%s\t%s\t%s_%d' % (qid, name, gold_id, gold_wid)
+
+        for eid in legal_kbids:
+            wid = eid_wid_dict.get(eid, -1)
+            print '\t%s_%d' % (eid, wid),
+        print
+
+
 def __test():
     f = open('e:/data/emadr/el/tac/2011/eval/doc_vecs_3.bin', 'rb')
     num, dim = np.fromfile(f, '<i4', 2)
@@ -221,7 +147,7 @@ def __test():
     f.close()
 
 if __name__ == '__main__':
-    # test_mlp('e:/test_res/mnist.pkl.gz')
     # filter_errors()
     # show_errors()
-    __test()
+    # __test()
+    __el_stat()

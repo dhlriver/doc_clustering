@@ -187,9 +187,11 @@ def add_gold_label(vec_train_file, gold_label_file, mid_eid_file, dst_file):
 
                 cur_com = np.fromfile(fin, '>f4', 1)
                 # print cur_com
-                commonness.append(cur_com)
                 vec = np.fromfile(fin, '>f4', vec_dim)
-                candidate_vecs.append(vec.astype(np.float32))
+
+                if eid != 'NILL':
+                    commonness.append(cur_com)
+                    candidate_vecs.append(vec.astype(np.float32))
                 eids.append(eid)
 
             if hit_idx == -1:
@@ -372,7 +374,7 @@ def __make_dataset_filter_nil():
 
 
 def __make_dataset_full():
-    year = 2010
+    year = 2009
     part = 'eval'
     method = 3
     expand = ''

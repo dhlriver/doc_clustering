@@ -5,9 +5,11 @@ import theano
 import theano.tensor as T
 import six.moves.cPickle as pickle
 import scipy.spatial
+from itertools import izip
+
 import ioutils
 from eltune import ELTune
-from itertools import izip
+from elutils import load_gold_el, load_docs_info
 
 
 def load_el_data(dataset):
@@ -179,52 +181,6 @@ def __load_dataset(data_file):
     return docs
 
 
-def __load_gold_el(edl_file):
-    f = open(edl_file, 'r')
-    gold_el_result = dict()
-    for line in f:
-        vals = line.strip().split('\t')
-        if len(vals) < 7:
-            continue
-        gold_el_result[vals[1]] = vals[4]
-    f.close()
-    return gold_el_result
-
-
-def __load_x_mention(fin, vecdim):
-    qid = ioutils.read_str_with_byte_len(fin)
-    num_candidates = np.fromfile(fin, '>i4', 1)
-    eids = [ioutils.read_str_with_byte_len(fin) for _ in xrange(num_candidates)]
-    commonnesses = np.fromfile(fin, '>f4', num_candidates)
-    vecs = [np.fromfile(fin, '>f4', vecdim) for _ in xrange(num_candidates)]
-    return qid, eids, commonnesses, vecs
-
-
-def __load_docs_info(xdatafile):
-    f = open(xdatafile, 'rb')
-    num_docs, vecdim = np.fromfile(f, '>i4', 2)
-    print '%d documents, vec dimention: %d' % (num_docs, vecdim)
-    docs = list()
-    for i in xrange(num_docs):
-        docid = ioutils.read_str_with_byte_len(f)
-        # print docid
-        docvec = np.fromfile(f, '>f4', vecdim)
-        num_mentions = np.fromfile(f, '>i4', 1)
-        # print num_mentions
-        mentions = list()
-        for j in xrange(num_mentions):
-            qid, kbids, commonnesses, vecs = __load_x_mention(f, vecdim)
-            # print qid, kbids
-            # print commonnesses
-            # print kbids[2]
-            mentions.append((qid, kbids, commonnesses, vecs))
-        docs.append((docid, docvec, mentions))
-        # if i == 5:
-        #     break
-    f.close()
-    return docs, vecdim
-
-
 def __get_legal_kbids(kbids, keep_nil):
     if keep_nil:
         return range(len(kbids)), kbids
@@ -282,7 +238,7 @@ def __separate_mentions(docs_info, keep_nil):
 
 
 def __build_x_for_testing(xdatafile, max_num_candidates, keep_nil):
-    docs_info, dim = __load_docs_info(xdatafile)
+    docs_info, dim = load_docs_info(xdatafile)
     link_result_trivial, qids, mention_side_vecs, candidates_info = __separate_mentions(docs_info, keep_nil)
     # print qids
 
@@ -317,9 +273,9 @@ def __build_x_for_testing(xdatafile, max_num_candidates, keep_nil):
 
 
 def __prepare_training_data(xdatafile, gold_edl_file, num_crpt_vecs):
-    gold_el_result = __load_gold_el(gold_edl_file)
+    gold_el_result = load_gold_el(gold_edl_file)
 
-    docs_info, vecdim = __load_docs_info(xdatafile)
+    docs_info, vecdim = load_docs_info(xdatafile)
     link_result_trivial, qids, mention_side_vecs, candidates_info = __separate_mentions(docs_info, True)
     kbids_list, candidate_side_vecs_list, commonnesses_list = candidates_info
 
@@ -454,7 +410,7 @@ def __nerl_perf(result_triv, qids, kbids_list, y_pred, gold_el_result, keep_nil,
 
 
 def __train_el_new():
-    year = 2010
+    year = 2009
     method = 3
     train_data_file, train_gold_file = '', ''
     val_data_file, test_data_file = '', ''
@@ -488,7 +444,7 @@ def __train_el_new():
     keep_nil = False
 
     dim = 100
-    ndim = 200
+    ndim = 300
     rng = np.random.RandomState(1234)
     batch_size = 5
     l2_reg = 0.001
@@ -498,8 +454,8 @@ def __train_el_new():
     train_model, n_train_batches = __build_train_model(train_data_file, train_gold_file, num_crpt_vecs, elt,
                                                        batch_size, l2_reg, learning_rate)
 
-    val_gold_result = __load_gold_el(val_gold_file)
-    test_gold_result = __load_gold_el(test_gold_file)
+    val_gold_result = load_gold_el(val_gold_file)
+    test_gold_result = load_gold_el(test_gold_file)
     # val_model_y_pred, val_link_result_triv, val_qids, val_kbids_list = __build_test_model(val_data_file,
     #                                                                                       max_num_candidates,
     #                                                                                       elt, keep_nil)
@@ -532,9 +488,9 @@ def __train_el_new():
         # print cur_sims
 
         cur_test_y_pred = test_model_y_pred()
-        for yp in cur_test_y_pred[:100]:
-            print yp,
-        print
+        # for yp in cur_test_y_pred[:100]:
+        #     print yp,
+        # print
         test_perf = __nerl_perf(test_link_result_triv, test_qids, test_kbids_list, cur_test_y_pred,
                                 test_gold_result, keep_nil)
 
@@ -546,8 +502,16 @@ def __train_el_new():
     print 'max', max_correct
 
 
+def __num_hits(y_pred, y_true):
+    cnt = 0
+    for y0, y1 in izip(y_pred, y_true):
+        if y0 == y1:
+            cnt += 1
+    return cnt
+
+
 def __train_el():
-    year = 2010
+    year = 2009
     method = 3
 
     datasets_train = []
@@ -556,7 +520,7 @@ def __train_el():
     if year == 2009:
         datasets_train = [# 'e:/dc/el/dwe_train/tac_2010_train_%d_wl.bin' % method,
                           'e:/data/emadr/el/tac/2010/eval/eval_%d_wl.bin' % method]
-        dataset_val = 'e:/data/emadr/el/tac/2011/eval/eval_%d_wl.bin' % method
+        # dataset_val = 'e:/data/emadr/el/tac/2011/eval/eval_%d_wl.bin' % method
         dataset_test = 'e:/data/emadr/el/tac/2009/eval/eval_%d_wl.bin' % method
         num_mentions_val = 2250.0
         num_mentions_test = 1675.0
@@ -578,13 +542,13 @@ def __train_el():
     #     dataset_test = 'e:/data/emadr/el/datasetbin/tac_2014_eval_wl.bin'
 
     max_num_candidates = 50
-    val_indices_var, val_mentions_vecs, val_commonness, val_cnd_vecs, val_num_candidates, val_y = \
-        load_el_data_for_theano_test(dataset_val, max_num_candidates)
+    # val_indices_var, val_mentions_vecs, val_commonness, val_cnd_vecs, val_num_candidates, val_y = \
+    #     load_el_data_for_theano_test(dataset_val, max_num_candidates)
     test_indices_var, test_mentions_vecs, test_commonness, test_cnd_vecs, test_num_candidates, test_y = \
         load_el_data_for_theano_test(dataset_test, max_num_candidates)
 
     mask_matrix_test = ELTune.get_mask_matrix(test_num_candidates, max_num_candidates)
-    mask_matrix_val = ELTune.get_mask_matrix(val_num_candidates, max_num_candidates)
+    # mask_matrix_val = ELTune.get_mask_matrix(val_num_candidates, max_num_candidates)
     # print num_hit.eval()
     train_mention_vecs, train_gold_vecs, train_crpt_vecs, train_gold_cmns, train_crpt_cmns = \
         load_el_data_for_theano_train(datasets_train)
@@ -628,8 +592,8 @@ def __train_el():
         }
     )
 
-    val_y_pred = elt.y_pred(val_mentions_vecs, val_cnd_vecs, val_commonness, mask_matrix_val)
-    val_model_y_pred = theano.function([], val_y_pred)
+    # val_y_pred = elt.y_pred(val_mentions_vecs, val_cnd_vecs, val_commonness, mask_matrix_val)
+    # val_model_y_pred = theano.function([], val_y_pred)
 
     test_y_pred = elt.y_pred(test_mentions_vecs, test_cnd_vecs, test_commonness, mask_matrix_test)
     test_model_y_pred = theano.function([], test_y_pred)
@@ -646,14 +610,16 @@ def __train_el():
             minibatch_avg_cost = train_model(minibatch_index)
             sum_cost += minibatch_avg_cost
 
-        cur_val_y_pred = val_model_y_pred()
-        cur_correct_val = __num_hits(cur_val_y_pred, val_y)
+        # cur_val_y_pred = val_model_y_pred()
+        # cur_correct_val = __num_hits(cur_val_y_pred, val_y)
 
-        cur_y_pred = test_model_y_pred()
+        cur_y_pred, sims = test_model_y_pred()
+        # print cur_y_pred, test_y
         cur_correct_test = __num_hits(cur_y_pred, test_y)
 
-        print 'epoch: %d, val: %d %f, test: %d %f' % (epoch, cur_correct_val, cur_correct_val / num_mentions_val,
-                                                      cur_correct_test, cur_correct_test / num_mentions_test)
+        # print 'epoch: %d, val: %d %f, test: %d %f' % (epoch, cur_correct_val, cur_correct_val / num_mentions_val,
+        #                                               cur_correct_test, cur_correct_test / num_mentions_test)
+        print 'epoch: %d, test: %d %f' % (epoch, cur_correct_test, cur_correct_test / num_mentions_test)
         # print epoch, cur_correct, cur_correct / num_mentions
         # if cur_correct > max_correct:
         #     max_correct = cur_correct
