@@ -60,14 +60,15 @@ def load_doc_entity_names(doc_list_file, doc_entity_name_file):
 
 
 def __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_query_file):
+    entity_names_dict = load_doc_entity_names(doc_list_file, doc_entity_name_file)
+
     fin = open(query_file, 'rb')
     queries_text = fin.read()
     fin.close()
 
-    entity_names_dict = load_doc_entity_names(doc_list_file, doc_entity_name_file)
-
     fout = open(dst_query_file, 'wb')
 
+    exp_cnt = 0
     ps = r'<query id="(.*?)">\s*<name>(.*?)</name>\s*<docid>(.*?)</docid>'
     miter = re.finditer(ps, queries_text)
     for m in miter:
@@ -75,17 +76,93 @@ def __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_que
         query_name = m.group(2)
         doc_id = m.group(3)
         if query_name.isupper():
-            # print query_name
+            print query_id, doc_id, query_name
             candidates = entity_names_dict[doc_id]
             for entity_name in candidates:
                 if __is_full_name(query_name, entity_name):
-                    print query_id, query_name, entity_name
-                    query_name = entity_name
+                    if len(entity_name) > len(query_name):
+                        print '%s\t%s\t%s#%s*' % (query_id, doc_id, query_name, entity_name),
+                        query_name = entity_name
+                        exp_cnt += 1
+                        print '*###',
+                        print
 
         fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
                    % (query_id, query_name, doc_id))
-
     fout.close()
+
+    print exp_cnt
+
+
+def __load_ner_result(filename):
+    doc_entities = dict()
+    f = open(filename, 'r')
+    for line in f:
+        vals = line.strip().split('\t')
+        docid = vals[0]
+        num_entities = int(vals[1])
+        entities = list()
+        for i in xrange(num_entities):
+            line = f.next()
+            vals = line.strip().split('\t')
+            entities.append((vals[0], vals[1]))
+        doc_entities[docid] = entities
+    f.close()
+    return doc_entities
+
+
+def __expand_acronym(query_name, entities_in_doc):
+    new_name = query_name
+    for (name, entity_type) in entities_in_doc:
+        print name, entity_type
+        if __is_full_name(query_name, name) and len(entity_name) > len(query_name):
+    # if len(entity_name) > len(query_name):
+    #                 print '%s\t%s\t%s#%s*' % (query_id, doc_id, query_name, entity_name),
+    #                 query_name = entity_name
+    #                 exp_cnt += 1
+    #                 print '*###',
+    #                 print
+    return new_name
+
+
+def __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file):
+    doc_entities = __load_ner_result(doc_ner_file)
+    # print doc_entities['APW_ENG_20080121.1013.LDC2009T13']
+    fin = open(query_file, 'rb')
+    queries_text = fin.read()
+    fin.close()
+
+    fout = open(dst_query_file, 'wb')
+
+    exp_cnt = 0
+    ps = r'<query id="(.*?)">\s*<name>(.*?)</name>\s*<docid>(.*?)</docid>'
+    miter = re.finditer(ps, queries_text)
+    for m in miter:
+        query_id = m.group(1)
+        query_name = m.group(2)
+        doc_id = m.group(3)
+        print '%s\t%s\t%s' % (query_id, query_name, doc_id)
+        cur_doc_entities = doc_entities[doc_id]
+        if query_name.isupper():
+            print query_name
+            query_name = __expand_acronym(query_name, cur_doc_entities)
+            break
+        #     print query_id, doc_id, query_name
+        #     candidates = entity_names_dict[doc_id]
+        #     for entity_name in candidates:
+        #         if __is_full_name(query_name, entity_name):
+        #             if len(entity_name) > len(query_name):
+        #                 print '%s\t%s\t%s#%s*' % (query_id, doc_id, query_name, entity_name),
+        #                 query_name = entity_name
+        #                 exp_cnt += 1
+        #                 print '*###',
+        #                 print
+        #
+        # fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
+        #            % (query_id, query_name, doc_id))
+    fout.close()
+
+    print exp_cnt
 
 
 def __gen_line_docs_file_tac(doc_list_file, dst_line_docs_file):
@@ -260,21 +337,38 @@ def __gen_tac_docs():
 
 
 def __job_acronym_expansion():
-    query_file = r'e:\data\el\LDC2015E19\data\2009\eval\tac_kbp_2009' \
-                 r'_english_entity_linking_evaluation_queries.xml'
-    doc_list_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/eng-docs-list-win.txt'
-    doc_entity_name_file = 'e:/data/emadr/el/tac/2009/tac_2009_eval_entities.txt'
-    dst_query_file = r'e:/data/el/LDC2015E19/data/2009/eval/data/queries_expanded.xml'
+    # query_file = r'e:\data\el\LDC2015E19\data\2009\eval\tac_kbp_2009' \
+    #              r'_english_entity_linking_evaluation_queries.xml'
+    # doc_list_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/eng-docs-list-win.txt'
+    # doc_entity_name_file = 'e:/data/emadr/el/tac/2009/tac_2009_eval_entities.txt'
+    # dst_query_file = r'e:/data/el/LDC2015E19/data/2009/eval/data/queries_expanded.xml'
 
     # query_file = r'e:/dc/el/tac/2010/eval/queries.xml'
     # doc_list_file = 'e:/dc/el/tac/2010/eval/docs_list.txt'
     # doc_entity_name_file = 'e:/dc/el/tac/2010/eval/tac_2010_eval_entities.txt'
     # dst_query_file = r'e:/dc/el/tac/2010/eval/queries-expanded.xml'
+
+    query_file = r'e:\data\el\LDC2015E19\data\2011\eval\tac' \
+                 r'_kbp_2011_english_entity_linking_evaluation_queries.xml'
+    doc_list_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/eng-docs-list-win.txt'
+    doc_entity_name_file = 'e:/data/emadr/el/tac/2011/eval/doc_entity_candidates.txt'
+    dst_query_file = r'e:/data/el/LDC2015E19/data/2011/eval/data/queries_expanded.xml'
+
     __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_query_file)
+
+
+def __job_name_expansion():
+    query_file = r'e:\data\el\LDC2015E19\data\2011\eval\tac' \
+                 r'_kbp_2011_english_entity_linking_evaluation_queries.xml'
+    doc_list_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/eng-docs-list-win.txt'
+    doc_ner_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-entities-ner.txt'
+    dst_query_file = r'e:/data/el/LDC2015E19/data/2011/eval/data/queries-name-expansion.xml'
+    __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file)
 
 if __name__ == '__main__':
     # __gen_tac_docs()
     # __setup_doc_entities_file()
     # gen_doc_mention_names()
-    __job_acronym_expansion()
+    # __job_acronym_expansion()
+    __job_name_expansion()
     # process_docs_for_ner()

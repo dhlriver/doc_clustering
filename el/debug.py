@@ -78,7 +78,7 @@ def __el_stat():
     gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
     eid_wid_file = 'e:/data/el/res/eid_wid_ord_eid.txt'
     keep_nil = False
-    only_show_not_in_candidate = True
+    only_show_not_in_candidate = False
 
     eid_wid_dict = load_eid_wid_file(eid_wid_file)
 
@@ -116,9 +116,6 @@ def __el_stat():
 
             error_list.append((qid, gold_mention.name, gold_id, legal_kbids))
 
-    print 'INKB: %f' % (float(id_hit_cnt) / num_mentions)
-    print 'TOTAL: %f' % (float(id_hit_cnt + nil_hit_cnt) / num_mentions)
-
     error_list.sort(key=lambda x: x[1])
     for e in error_list:
         qid, name, gold_id, legal_kbids = e
@@ -128,14 +125,17 @@ def __el_stat():
         if only_show_not_in_candidate and in_candidates:
             continue
 
-        if not in_candidates:
-            print 'not found'
+        # if not in_candidates:
+        #     print 'not found'
         print '%s\t%s\t%s_%d' % (qid, name, gold_id, gold_wid)
 
-        for eid in legal_kbids:
-            wid = eid_wid_dict.get(eid, -1)
-            print '\t%s_%d' % (eid, wid),
-        print
+        # for eid in legal_kbids:
+        #     wid = eid_wid_dict.get(eid, -1)
+        #     print '\t%s_%d' % (eid, wid),
+        # print
+
+    print 'INKB: %f' % (float(id_hit_cnt) / num_mentions)
+    print 'TOTAL: %f' % (float(id_hit_cnt + nil_hit_cnt) / num_mentions)
 
 
 def __test():
