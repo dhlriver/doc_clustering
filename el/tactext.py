@@ -97,7 +97,7 @@ def __acronym_expansion(query_file, doc_list_file, doc_entity_name_file, dst_que
     print exp_cnt
 
 
-def __load_ner_result(filename):
+def __load_ner_result(filename, toutf8=True):
     doc_entities = dict()
     f = open(filename, 'r')
     for line in f:
@@ -108,7 +108,10 @@ def __load_ner_result(filename):
         for i in xrange(num_entities):
             line = f.next()
             vals = line.strip().split('\t')
-            entities.append((vals[0], vals[1]))
+            entity_name = vals[0]
+            if toutf8:
+                entity_name = entity_name.decode('utf-8')
+            entities.append((entity_name, vals[1]))
         doc_entities[docid] = entities
     f.close()
     return doc_entities
@@ -133,10 +136,11 @@ def __expand_acronym(query_name, entities_in_doc):
 def __expand_person_name(query_name, entities_in_doc):
     new_name = query_name
     query_name_lc = query_name.lower()
+    # print query_name_lc, query_name
     for (name, entity_type) in entities_in_doc:
         if entity_type != 'PERSON':
             continue
-        # print query_name, name
+
         pos = name.lower().find(query_name_lc)
         # if query_name_lc == 'abudllah':
         #     print name, pos
@@ -220,9 +224,10 @@ def __filter_expansion_candidates(expansion_candidates, entity_candidates_dict_f
     return expansion_dict
 
 
+# TODO delete
 def __expand_locations(mention_file, tokenized_text_file, entity_candidates_dict_file, dst_mention_file):
     all_mentions = Mention.load_edl_file(mention_file)
-    doc_mentions = Mention.arrange_mentions_by_docid(all_mentions)
+    doc_mentions = Mention.group_mentions_by_docid(all_mentions)
 
     expansion_candidates = []
     f = open(tokenized_text_file, 'r')
@@ -252,41 +257,93 @@ def __expand_locations(mention_file, tokenized_text_file, entity_candidates_dict
     Mention.save_as_edl_file(all_mentions, dst_mention_file)
 
 
-def __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file):
-    doc_entities = __load_ner_result(doc_ner_file)
-    # print doc_entities['APW_ENG_20080121.1013.LDC2009T13']
-    fin = open(query_file, 'rb')
-    queries_text = fin.read()
-    fin.close()
+def __expand_location_names(mentions, tokenized_text_file, entity_candidates_dict_file):
+    doc_mentions_dict = Mention.group_mentions_by_docid(mentions)
 
-    fout = open(dst_query_file, 'wb')
+    expansion_candidates = []
+    f = open(tokenized_text_file, 'r')
+    for line in f:
+        vals = line.strip().split('\t')
+        docid = vals[0]
+        # print docid
+        num_lines = int(vals[1])
+        doc_mentions = doc_mentions_dict[docid]
+        # print len(mentions)
+        for i in xrange(num_lines):
+            line = f.next().decode('utf-8')
+            words = line.strip().split(' ')
+            expansion_candidates += __find_expansion_candidates_in_location_mentions(doc_mentions, words)
+            # break
+        # break
+    f.close()
 
-    exp_cnt = 0
-    ps = r'<query id="(.*?)">\s*<name>(.*?)</name>\s*<docid>(.*?)</docid>'
-    miter = re.finditer(ps, queries_text)
-    for m in miter:
-        query_id = m.group(1)
-        query_name = m.group(2)
-        doc_id = m.group(3)
-        # print '%s\t%s\t%s' % (query_id, query_name, doc_id)
-        cur_doc_entities = doc_entities[doc_id]
-        if query_name.isupper():
-            # print query_name
-            expanded_name = __expand_acronym(query_name, cur_doc_entities)
-            if len(expanded_name) > len(query_name):
-                query_name = expanded_name
-                exp_cnt += 1
-        expanded_name = __expand_person_name(query_name, cur_doc_entities)
-        if len(expanded_name) > len(query_name):
-            print '%s\t%s' % (query_name, expanded_name)
-            query_name = expanded_name
-            exp_cnt += 1
+    expansion_dict = __filter_expansion_candidates(expansion_candidates, entity_candidates_dict_file)
+    qid_mentions = Mention.group_mentions_by_qid(mentions)
+    for qid, mention in qid_mentions.iteritems():
+        exp_name = expansion_dict.get(qid, '')
+        if not exp_name:
+            continue
+        print '%s\t%s\t%s' % (qid, mention.name, exp_name)
+        mention.name = exp_name
 
-        fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
-                   % (query_id, query_name, doc_id))
-    fout.close()
 
-    print exp_cnt
+def __expand_name_with_ner_result(mentions, doc_ner_file):
+    doc_entity_names = __load_ner_result(doc_ner_file)
+    for m in mentions:
+        cur_doc_entity_names = doc_entity_names[m.docid]
+        if m.name.isupper():
+            expanded_name = __expand_acronym(m.name, cur_doc_entity_names)
+            if len(expanded_name) > len(m.name):
+                m.name = expanded_name
+
+        expanded_name = __expand_person_name(m.name, cur_doc_entity_names)
+        if len(expanded_name) > len(m.name):
+            print '%s\t%s\t%s' % (m.mention_id, m.name, expanded_name)
+            m.name = expanded_name
+
+
+def __name_expansion(edl_mentions_file, doc_ner_file, tokenized_text_file, entity_candidates_dict_file, dst_file):
+    mentions = Mention.load_edl_file(edl_mentions_file)
+    __expand_name_with_ner_result(mentions, doc_ner_file)
+    __expand_location_names(mentions, tokenized_text_file, entity_candidates_dict_file)
+    Mention.save_as_edl_file(mentions, dst_file)
+
+
+# def __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file):
+#     doc_entities = __load_ner_result(doc_ner_file)
+#     # print doc_entities['APW_ENG_20080121.1013.LDC2009T13']
+#     fin = open(query_file, 'rb')
+#     queries_text = fin.read()
+#     fin.close()
+#
+#     fout = open(dst_query_file, 'wb')
+#
+#     exp_cnt = 0
+#     ps = r'<query id="(.*?)">\s*<name>(.*?)</name>\s*<docid>(.*?)</docid>'
+#     miter = re.finditer(ps, queries_text)
+#     for m in miter:
+#         query_id = m.group(1)
+#         query_name = m.group(2)
+#         doc_id = m.group(3)
+#         # print '%s\t%s\t%s' % (query_id, query_name, doc_id)
+#         cur_doc_entities = doc_entities[doc_id]
+#         if query_name.isupper():
+#             # print query_name
+#             expanded_name = __expand_acronym(query_name, cur_doc_entities)
+#             if len(expanded_name) > len(query_name):
+#                 query_name = expanded_name
+#                 exp_cnt += 1
+#         expanded_name = __expand_person_name(query_name, cur_doc_entities)
+#         if len(expanded_name) > len(query_name):
+#             print '%s\t%s' % (query_name, expanded_name)
+#             query_name = expanded_name
+#             exp_cnt += 1
+#
+#         fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
+#                    % (query_id, query_name, doc_id))
+#     fout.close()
+#
+#     print exp_cnt
 
 
 def __gen_line_docs_file_tac(doc_list_file, dst_line_docs_file):
@@ -299,111 +356,6 @@ def __gen_line_docs_file_tac(doc_list_file, dst_line_docs_file):
         fout.write(line_text)
         fout.write('\n')
     f.close()
-    fout.close()
-    # fout0 = open(dst_line_docs_file, 'wb')
-    # fout1 = open(dst_doc_list_file, 'wb')
-    # for f in os.listdir(docs_dir):
-    #     file_path = os.path.join(docs_dir, f)
-    #     if not os.path.isfile(file_path):
-    #         continue
-    #
-    #     fout1.write(f)
-    #     fout1.write('\n')
-    #
-    #     line_text = textutils.doc_to_line(file_path)
-    #     fout0.write(line_text)
-    #     fout0.write('\n')
-    # fout0.close()
-    # fout1.close()
-
-
-def gen_doc_mention_names():
-    # query_file = r'D:\data\el\LDC2015E19\data\2010\eval\tac_kbp_2010' \
-    #              r'_english_entity_linking_evaluation_queries.xml'
-    # docs_list_file = 'e:/dc/el/tac/tac_2010_eval_docs_list.txt'
-    # doc_entity_names_file = 'e:/dc/el/tac/tac_2010_eval_entities.txt'
-    # dst_file = 'e:/dc/el/tac/tac_2010_eval_doc_queries.txt'
-
-    query_file = r'D:\data\el\LDC2015E19\data\2009\eval\tac_kbp_2009' \
-                 r'_english_entity_linking_evaluation_queries.xml'
-    docs_list_file = 'e:/dc/el/tac/tac_2009_eval_docs_list.txt'
-    doc_entity_names_file = 'e:/dc/el/tac/tac_2009_eval_entities.txt'
-    dst_file = 'e:/dc/el/tac/tac_2009_eval_doc_queries.txt'
-
-    doc_entity_names = list()
-    fin = open(doc_entity_names_file, 'rb')
-    for line in fin:
-        names = line.strip().split('\t')
-        doc_entity_names.append(names)
-    fin.close()
-
-    fin = open(query_file, 'rb')
-    queries_text = fin.read()
-    fin.close()
-
-    ps = r'<query id="(.*?)">\s*<name>(.*?)</name>\s*<docid>(.*?)</docid>'
-    m_iters = re.finditer(ps, queries_text)
-    cnt = 0
-    doc_queries = dict()
-    for m in m_iters:
-        cnt += 1
-        cur_doc_queries = doc_queries.get(m.group(3), list())
-        cur_doc_queries.append((m.group(1), m.group(2)))
-        doc_queries[m.group(3)] = cur_doc_queries
-
-    fout = open(dst_file, 'wb')
-    fin = open(docs_list_file, 'rb')
-    for doc_idx, line in enumerate(fin):
-        doc_name = line.strip()
-        if doc_name.endswith('.xml'):
-            doc_name = doc_name[:-4]
-        cur_doc_queries = doc_queries[doc_name]
-        cur_doc_entity_names = doc_entity_names[doc_idx]
-        hit = False
-        for qid, name in cur_doc_queries:
-            candidates = list()
-            for entity_name in cur_doc_entity_names:
-                if (' ' not in name) and len(entity_name) > len(name) and entity_name.find(name) > 0:
-                    candidates.append(entity_name)
-            if len(candidates) > 0:
-                hit = True
-                fout.write('%s\t%s' % (qid, name))
-                for candidate in candidates:
-                    fout.write('\t' + candidate)
-        if hit:
-            fout.write('\n')
-        # print '\n'
-    fin.close()
-    fout.close()
-
-
-def process_docs_for_ner():
-    # cur_docs_file = 'e:/dc/el/tac/2010/train/docs.txt'
-    # dst_docs_file = 'e:/dc/el/tac/2010/train/docs-ner.txt'
-    # cur_docs_file = 'e:/dc/el/tac/2010/eval/docs.txt'
-    # dst_docs_file = 'e:/dc/el/tac/2010/eval/docs-ner.txt'
-    cur_docs_file = 'e:/dc/el/tac/2009/eval/docs.txt'
-    dst_docs_file = 'e:/dc/el/tac/2009/eval/docs-ner.txt'
-
-    sub0 = '[^\s]*-[^\s]*-[^\s]*'
-    sub1 = '[^\s]*[<>][^\s]*'
-    sub2 = '&lt;[^\s]*&gt;'
-    sub3 = 'https?:[^\s]*'
-    sub4 = '[^\s]*@[^\s]*\.[^\s]*'
-    sub5 = '&[^\s]*;'
-    sub6 = '==+|__+|\*\*+'
-    sub7 = '[^\s]+\.[^\s]+\.[^\s]+'
-
-    fin = open(cur_docs_file, 'rb')
-    fout = open(dst_docs_file, 'wb')
-    for line in fin:
-        line = line.replace('USENET TEXT', '')
-        line = line.replace('NEWS STORY', '')
-        line = re.sub('%s|%s|%s|%s|%s|%s|%s|%s' % (sub0, sub1, sub2, sub3, sub4, sub5, sub6, sub7), '', line)
-        line = re.sub('\s+', ' ', line)
-        fout.write(line)
-        fout.write('\n')
-    fin.close()
     fout.close()
 
 
@@ -433,7 +385,7 @@ def __setup_doc_entities_file():
     textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
 
 
-def __gen_tac_docs():
+def __gen_tac_dw():
     # docs_dir = r'D:\data\el\LDC2015E19\data\2010\training\source_documents'
     docs_dir = r'D:\data\el\LDC2015E19\data\2010\eval\source_documents'
     # docs_dir = r'D:\data\el\LDC2015E19\data\2009\eval\source_documents'
@@ -482,12 +434,16 @@ def __job_acronym_expansion():
 
 
 def __job_name_expansion():
-    query_file = r'e:\data\el\LDC2015E19\data\2011\eval\tac' \
-                 r'_kbp_2011_english_entity_linking_evaluation_queries.xml'
-    doc_list_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/eng-docs-list-win.txt'
+    # query_file = r'e:\data\el\LDC2015E19\data\2011\eval\tac' \
+    #              r'_kbp_2011_english_entity_linking_evaluation_queries.xml'
+    # dst_query_file = r'e:/data/el/LDC2015E19/data/2011/eval/data/queries-name-expansion.xml'
+    # doc_list_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/eng-docs-list-win.txt'
+    edl_mentions_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
     doc_ner_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-entities-ner.txt'
-    dst_query_file = r'e:/data/el/LDC2015E19/data/2011/eval/data/queries-name-expansion.xml'
-    __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file)
+    tokenized_text_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-text-tokenized.txt'
+    entity_candidates_dict_file = 'e:/data/edl/res/prog-gen/candidates-dict.bin'
+    dst_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-all-expansion.tab'
+    __name_expansion(edl_mentions_file, doc_ner_file, tokenized_text_file, entity_candidates_dict_file, dst_file)
 
 
 def __test():
@@ -498,10 +454,10 @@ def __test():
     __expand_locations(mention_file, tokenized_doc_text_file, candidates_dict_file, dst_mention_file)
 
 if __name__ == '__main__':
-    # __gen_tac_docs()
+    # __gen_tac_dw()
     # __setup_doc_entities_file()
     # gen_doc_mention_names()
     # __job_acronym_expansion()
-    # __job_name_expansion()
+    __job_name_expansion()
     # process_docs_for_ner()
-    __test()
+    # __test()

@@ -1,7 +1,7 @@
 class Mention:
     # arrange mentions to a dict, { docid -> mentions-in-doc }
     @staticmethod
-    def arrange_mentions_by_docid(mention_list):
+    def group_mentions_by_docid(mention_list):
         doc_mentions_dict = dict()
         for m in mention_list:
             # if m.mention_type != 'NOM':
@@ -70,7 +70,7 @@ class Mention:
         f.close()
 
         if arrange_by_docid:
-            return Mention.arrange_mentions_by_docid(mentions)
+            return Mention.group_mentions_by_docid(mentions)
         return mentions
 
     def to_edl_file(self, fout, runid='ZJU'):
