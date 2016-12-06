@@ -227,12 +227,12 @@ def __build_test_model(xdatafile, max_num_candidates, elt, keep_nil):
 
 def __kbid_hit(sys_kbid, gold_kbid, use_eid):
     if use_eid and sys_kbid.startswith('m.') and gold_kbid.startswith('NIL'):
-        return True
+        return 2
     if gold_kbid.startswith('NIL') and sys_kbid.startswith('NIL'):
-        return True
+        return 2
     if sys_kbid == gold_kbid:
-        return True
-    return False
+        return 1
+    return 0
 
 
 def __nerl_perf(result_triv, qids, kbids_list, y_pred, gold_el_result, keep_nil, use_eid=True):
@@ -245,25 +245,38 @@ def __nerl_perf(result_triv, qids, kbids_list, y_pred, gold_el_result, keep_nil,
         result_rank[qid] = kbids[y]
         # result_rank[qid] = kbids[0]
 
-    triv_hit_cnt, hit_cnt, num_mentions = 0, 0, 0
+    triv_hit_cnt, hit_cnt, nil_hit_cnt, num_mentions, num_nil_mentions = 0, 0, 0, 0, 0
     for qid, gold_kbid in gold_el_result.iteritems():
         if not keep_nil and gold_kbid.startswith('NIL'):
             continue
         num_mentions += 1
+        if gold_kbid.startswith('NIL'):
+            num_nil_mentions += 1
 
         sys_kbid = result_triv.get(qid, '')
         if sys_kbid:
-            if __kbid_hit(sys_kbid, gold_kbid, use_eid):
+            hit_result = __kbid_hit(sys_kbid, gold_kbid, use_eid)
+            if hit_result > 0:
                 triv_hit_cnt += 1
                 hit_cnt += 1
+                if hit_result == 2:
+                    nil_hit_cnt += 1
             continue
+
         sys_kbid = result_rank.get(qid, '')
         if not sys_kbid:
             print 'error! %s not found' % qid
-        if __kbid_hit(sys_kbid, gold_kbid, use_eid):
+        hit_result = __kbid_hit(sys_kbid, gold_kbid, use_eid)
+        if hit_result > 0:
             hit_cnt += 1
+            if hit_result == 2:
+                nil_hit_cnt += 1
 
-    print '%d, %d of %d; triv: %f' % (triv_hit_cnt, hit_cnt, num_mentions, float(triv_hit_cnt) / num_mentions)
+    print 'triv: %f' % (float(triv_hit_cnt) / num_mentions),
+    if keep_nil:
+        print ' nil: %f inkb: %f' % (float(nil_hit_cnt) / num_nil_mentions,
+                                     float(hit_cnt - nil_hit_cnt) / (num_mentions - num_nil_mentions)),
+    print
     return float(hit_cnt) / num_mentions
 
 
@@ -278,8 +291,8 @@ def __train_el():
         train_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
         val_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-3.bin'
         val_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
-        test_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-3.bin'
-        test_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
+        test_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-name-exp-3.bin'
+        test_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
     elif year == 2010:
         train_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-3.bin'
         train_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'

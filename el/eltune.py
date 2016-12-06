@@ -38,6 +38,7 @@ class ELTune(object):
         sims = (c * m).sum(axis=2) + mask_matrix
         # scores = 0.1 * commonness + 0.9 * sims
         scores = 0.45 * commonness + 0.55 * sims
+        # scores = 0.6 * commonness + 0.4 * sims
         # scores = 0.45 * commonness
         # scores = sims
 

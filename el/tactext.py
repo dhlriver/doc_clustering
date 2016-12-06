@@ -1,7 +1,10 @@
 import re
 import os
+import numpy as np
 
+from mention import Mention
 import textutils
+import ioutils
 import dataarange
 
 
@@ -114,8 +117,10 @@ def __load_ner_result(filename):
 def __expand_acronym(query_name, entities_in_doc):
     new_name = query_name
     for (name, entity_type) in entities_in_doc:
-        print name, entity_type
-        if __is_full_name(query_name, name) and len(entity_name) > len(query_name):
+        # print name, entity_type
+        if __is_full_name(query_name, name) and len(name) > len(new_name):
+            new_name = name
+            # print query_name, new_name
     # if len(entity_name) > len(query_name):
     #                 print '%s\t%s\t%s#%s*' % (query_id, doc_id, query_name, entity_name),
     #                 query_name = entity_name
@@ -123,6 +128,128 @@ def __expand_acronym(query_name, entities_in_doc):
     #                 print '*###',
     #                 print
     return new_name
+
+
+def __expand_person_name(query_name, entities_in_doc):
+    new_name = query_name
+    query_name_lc = query_name.lower()
+    for (name, entity_type) in entities_in_doc:
+        if entity_type != 'PERSON':
+            continue
+        # print query_name, name
+        pos = name.lower().find(query_name_lc)
+        # if query_name_lc == 'abudllah':
+        #     print name, pos
+        if pos < 0:
+            continue
+
+        left_flg = (pos == 0) or (name[pos - 1] == ' ' or name[pos - 1] == '-')
+        rpos = pos + len(query_name_lc)
+        right_flg = (rpos == len(name)) or (name[rpos] == ' ' or name[rpos] == '-')
+
+        if left_flg and right_flg and len(name) > len(new_name):
+            new_name = name
+        # if (len(name) > len(query_name)):
+        #     print '%s\t%s' % (query_name, name)
+    return new_name
+
+
+def __find_expansion_candidates_in_location_mentions(mentions, words):
+    expansion_candidates = []
+    for m in mentions:
+        if ' ' in m.name:
+            continue
+        for i in xrange(len(words) - 2):
+            if m.name.lower() != words[i].lower():
+                continue
+            if words[i + 1] != ',':
+                continue
+            endpos = i + 2
+            while endpos < len(words) and words[endpos][0].isupper():
+                endpos += 1
+            if endpos > i + 2:
+                # print m.name, words[i:endpos]
+                exp_name = m.name + ' '.join(words[i + 1:endpos])
+                # print '%s\t%s' % (m.name, exp_name)
+                expansion_candidates.append((m.mention_id, exp_name))
+                if '.' in exp_name:
+                    new_exp_name = exp_name.replace('.', '')
+                    expansion_candidates.append((m.mention_id, new_exp_name))
+    return expansion_candidates
+
+
+def __filter_expansion_candidates(expansion_candidates, entity_candidates_dict_file):
+    name_qids_dict = dict()
+    for tup in expansion_candidates:
+        qids = name_qids_dict.get(tup[1].lower(), list())
+        if not qids:
+            name_qids_dict[tup[1].lower()] = qids
+        if tup[0] not in qids:
+            qids.append(tup[0])
+    expansion_dict = dict()
+    # for tup in expansion_candidates:
+    #     expansion_dict[tup[0]] = tup[1]
+    # print len(expansion_dict)
+
+    f = open(entity_candidates_dict_file, 'rb')
+    num_names, total_num_cands = np.fromfile(f, '>i4', 2)
+    print num_names
+    for i in xrange(num_names):
+        name = ioutils.read_str_with_byte_len(f)
+        # print name
+        num_cands = np.fromfile(f, '>i2', 1)
+        if num_cands == 0:
+            continue
+
+        qids = name_qids_dict.get(name, [])
+        for qid in qids:
+            expansion_dict[qid] = name
+
+        # print num_cands
+        for _ in xrange(num_cands):
+            ioutils.read_str_with_byte_len(f)
+            np.fromfile(f, '>f4', 1)
+
+        if i % 1000000 == 0:
+            print i
+    f.close()
+
+    for qid, name in expansion_dict.iteritems():
+        print qid, name
+    print len(expansion_dict)
+    return expansion_dict
+
+
+def __expand_locations(mention_file, tokenized_text_file, entity_candidates_dict_file, dst_mention_file):
+    all_mentions = Mention.load_edl_file(mention_file)
+    doc_mentions = Mention.arrange_mentions_by_docid(all_mentions)
+
+    expansion_candidates = []
+    f = open(tokenized_text_file, 'r')
+    for line in f:
+        vals = line.strip().split('\t')
+        docid = vals[0]
+        # print docid
+        num_lines = int(vals[1])
+        mentions = doc_mentions[docid]
+        # print len(mentions)
+        for i in xrange(num_lines):
+            line = f.next()
+            words = line.strip().split(' ')
+            expansion_candidates += __find_expansion_candidates_in_location_mentions(mentions, words)
+            # break
+        # break
+    f.close()
+
+    expansion_dict = __filter_expansion_candidates(expansion_candidates, entity_candidates_dict_file)
+    qid_mentions = Mention.group_mentions_by_qid(all_mentions)
+    for qid, mention in qid_mentions.iteritems():
+        exp_name = expansion_dict.get(qid, '')
+        if not exp_name:
+            continue
+        print '%s\t%s\t%s' % (qid, mention.name, exp_name)
+        mention.name = exp_name
+    Mention.save_as_edl_file(all_mentions, dst_mention_file)
 
 
 def __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file):
@@ -141,25 +268,22 @@ def __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file):
         query_id = m.group(1)
         query_name = m.group(2)
         doc_id = m.group(3)
-        print '%s\t%s\t%s' % (query_id, query_name, doc_id)
+        # print '%s\t%s\t%s' % (query_id, query_name, doc_id)
         cur_doc_entities = doc_entities[doc_id]
         if query_name.isupper():
-            print query_name
-            query_name = __expand_acronym(query_name, cur_doc_entities)
-            break
-        #     print query_id, doc_id, query_name
-        #     candidates = entity_names_dict[doc_id]
-        #     for entity_name in candidates:
-        #         if __is_full_name(query_name, entity_name):
-        #             if len(entity_name) > len(query_name):
-        #                 print '%s\t%s\t%s#%s*' % (query_id, doc_id, query_name, entity_name),
-        #                 query_name = entity_name
-        #                 exp_cnt += 1
-        #                 print '*###',
-        #                 print
-        #
-        # fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
-        #            % (query_id, query_name, doc_id))
+            # print query_name
+            expanded_name = __expand_acronym(query_name, cur_doc_entities)
+            if len(expanded_name) > len(query_name):
+                query_name = expanded_name
+                exp_cnt += 1
+        expanded_name = __expand_person_name(query_name, cur_doc_entities)
+        if len(expanded_name) > len(query_name):
+            print '%s\t%s' % (query_name, expanded_name)
+            query_name = expanded_name
+            exp_cnt += 1
+
+        fout.write('  <query id="%s">\n    <name>%s</name>\n    <docid>%s</docid>\n  </query>\n'
+                   % (query_id, query_name, doc_id))
     fout.close()
 
     print exp_cnt
@@ -365,10 +489,19 @@ def __job_name_expansion():
     dst_query_file = r'e:/data/el/LDC2015E19/data/2011/eval/data/queries-name-expansion.xml'
     __name_expansion(query_file, doc_list_file, doc_ner_file, dst_query_file)
 
+
+def __test():
+    mention_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
+    dst_mention_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-all-expansion.tab'
+    tokenized_doc_text_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-text-tokenized.txt'
+    candidates_dict_file = 'e:/data/edl/res/prog-gen/candidates-dict.bin'
+    __expand_locations(mention_file, tokenized_doc_text_file, candidates_dict_file, dst_mention_file)
+
 if __name__ == '__main__':
     # __gen_tac_docs()
     # __setup_doc_entities_file()
     # gen_doc_mention_names()
     # __job_acronym_expansion()
-    __job_name_expansion()
+    # __job_name_expansion()
     # process_docs_for_ner()
+    __test()

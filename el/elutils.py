@@ -2,6 +2,20 @@ import ioutils
 import numpy as np
 
 
+def load_mid_eid_file(filename):
+    f = open(filename, 'rb')
+    num = np.fromfile(f, '>i4', 1)
+    print num
+    mid_eid_dict = dict()
+    for i in xrange(num):
+        mid = ioutils.read_str_with_fixed_len(f, 8)
+        eid = ioutils.read_str_with_fixed_len(f, 8)
+        # print mid, eid
+        mid_eid_dict[mid] = eid
+    f.close()
+    return mid_eid_dict
+
+
 def __load_mention_info(fin, vecdim):
     qid = ioutils.read_str_with_byte_len(fin)
     num_candidates = np.fromfile(fin, '>i4', 1)
@@ -36,14 +50,17 @@ def load_docs_info(xdatafile):
     return docs, vecdim
 
 
-def load_gold_el(edl_file):
+def load_gold_el(edl_file, include_name=False):
     f = open(edl_file, 'r')
     gold_el_result = dict()
     for line in f:
         vals = line.strip().split('\t')
         if len(vals) < 7:
             continue
-        gold_el_result[vals[1]] = vals[4]
+        if include_name:
+            gold_el_result[vals[1]] = (vals[4], vals[2])
+        else:
+            gold_el_result[vals[1]] = vals[4]
     f.close()
     return gold_el_result
 
