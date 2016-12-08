@@ -60,11 +60,18 @@ def show_errors():
 
 
 def __measure_perf():
-    sys_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/output/sys-link-sm-0.tab'
-    gold_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
-    mid_eid_file = 'e:/data/edl/res/prog-gen/mid-to-eid-ac.bin'
+    # sys_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/output/sys-link-sm-0.tab'
+    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
+    sys_edl_file = 'e:/data/el/LDC2015E19/data/2010/eval/output/sys-link-sm-0.tab'
+    gold_edl_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
+    # sys_edl_file = 'e:/data/el/LDC2015E19/data/2009/eval/output/sys-link-sm-0.tab'
+    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
+    mid_eid_file = 'e:/data/edl/res/prog-gen/mid-to-eid.bin'
+    # mid_eid_file = 'e:/data/edl/res/prog-gen/mid-to-eid-ac.bin'
     mid_eid_dict = load_mid_eid_file(mid_eid_file)
     sys_el_result = load_gold_el(sys_edl_file)
+    # filter_nil = False
+    filter_nil = True
 
     f = open(gold_edl_file, 'r')
     gold_el_result = dict()
@@ -75,12 +82,17 @@ def __measure_perf():
         gold_el_result[vals[1]] = vals
     f.close()
 
-    hit_cnt = 0
+    hit_cnt, mention_cnt = 0, 0
     for qid, kbid in sys_el_result.iteritems():
         eid = mid_eid_dict.get(kbid[2:], 'NIL')
         gold_result = gold_el_result[qid]
         gold_id = gold_result[4]
-        if eid.startswith('NIL') and gold_id.startswith('NIL'):
+        if filter_nil and gold_id.startswith('NIL'):
+            continue
+
+        mention_cnt += 1
+
+        if not filter_nil and eid.startswith('NIL') and gold_id.startswith('NIL'):
             hit_cnt += 1
             continue
         if eid == gold_id:
@@ -88,7 +100,7 @@ def __measure_perf():
             continue
         print eid, gold_result
         # print eid, gold_id
-    print float(hit_cnt) / len(gold_el_result)
+    print float(hit_cnt) / mention_cnt
 
 
 def __get_legal_kbids(kbids, keep_nil):
@@ -196,6 +208,6 @@ def __test():
 if __name__ == '__main__':
     # filter_errors()
     # show_errors()
-    # __measure_perf()
+    __measure_perf()
     # __test()
-    __el_stat()
+    # __el_stat()

@@ -281,7 +281,8 @@ def __nerl_perf(result_triv, qids, kbids_list, y_pred, gold_el_result, keep_nil,
 
 
 def __train_el():
-    year = 2011
+    year = 2010
+    keep_nil = False
     method = 3
     train_data_file, train_gold_file = '', ''
     val_data_file, test_data_file = '', ''
@@ -312,10 +313,9 @@ def __train_el():
 
     num_crpt_vecs = 5
     max_num_candidates = 30
-    keep_nil = True
 
     dim = 100
-    ndim = 300
+    ndim = 200
     rng = np.random.RandomState(1234)
     batch_size = 5
     l2_reg = 0.001
