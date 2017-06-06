@@ -218,7 +218,7 @@ def __expand_name_with_ner_result(mentions, doc_ner_file):
 def __name_expansion(edl_mentions_file, doc_ner_file, tokenized_text_file, entity_candidates_dict_file, dst_file):
     mentions = Mention.load_edl_file(edl_mentions_file)
     __expand_name_with_ner_result(mentions, doc_ner_file)
-    __expand_location_names(mentions, tokenized_text_file, entity_candidates_dict_file)
+    # __expand_location_names(mentions, tokenized_text_file, entity_candidates_dict_file)
     Mention.save_as_edl_file(mentions, dst_file)
 
 
@@ -245,38 +245,40 @@ def __job_init_entity_net():
 
 
 def __setup_doc_entities_file():
-    line_docs_file_name = 'e:/data/emadr/el/tac/2011/eval/docs-tokenized.txt'
     illegal_start_words_file = 'e:/data/emadr/20ng_bydate/stopwords.txt'
-    doc_entity_candidates_list_file = 'e:/data/emadr/el/tac/2011/eval/doc_entity_candidates.txt'
-    entity_candidate_clique_file = 'e:/data/emadr/el/tac/2011/eval/entity_candidate_cliques.txt'
-    # dataarange.init_entity_net(line_docs_file_name, illegal_start_words_file, doc_entity_candidates_list_file,
-    #                            entity_candidate_clique_file)
+
+    emadr_data_dir = 'e:/data/emadr/el/tac/2014/eval/'
+    line_docs_file = os.path.join(emadr_data_dir, 'docs-tokenized.txt')
+    doc_entity_candidates_list_file = os.path.join(emadr_data_dir, 'doc_entity_candidates.txt')
+    entity_candidate_clique_file = os.path.join(emadr_data_dir, 'entity_candidate_cliques.txt')
+    dataarange.init_entity_net(line_docs_file, illegal_start_words_file, doc_entity_candidates_list_file,
+                               entity_candidate_clique_file)
 
     proper_entity_dict_file = 'e:/data/emadr/el/wiki/entity_names.txt'
     # doc_entity_candidates_file = 'e:/data/emadr/el/wiki/doc_entity_candidates.txt'
-    dst_doc_entity_list_file = 'e:/data/emadr/el/tac/2011/eval/de.bin'
+    dst_doc_entity_list_file = os.path.join(emadr_data_dir, 'de.bin')
 
     dataarange.gen_doc_entity_pairs(proper_entity_dict_file, doc_entity_candidates_list_file, dst_doc_entity_list_file)
-    dst_entity_cnts_file = 'e:/data/emadr/el/tac/2011/eval/entity_cnts.bin'
-    textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
+    # dst_entity_cnts_file = 'e:/data/emadr/el/tac/2011/eval/entity_cnts.bin'
+    # textutils.gen_word_cnts_file_from_bow_file(dst_doc_entity_list_file, dst_entity_cnts_file)
 
 
 def __gen_tac_dw():
     # docs_dir = r'D:\data\el\LDC2015E19\data\2010\training\source_documents'
-    docs_dir = r'D:\data\el\LDC2015E19\data\2010\eval\source_documents'
+    # docs_dir = r'D:\data\el\LDC2015E19\data\2010\eval\source_documents'
     # docs_dir = r'D:\data\el\LDC2015E19\data\2009\eval\source_documents'
-    year = 2010
-    part = 'eval'
 
-    doc_list_file = 'e:/data/el/LDC2015E19/data/%d/%s/data/eng-docs-list-win.txt' % (year, part)
-    line_docs_file = 'e:/data/emadr/el/tac/%d/%s/docs.txt' % (year, part)
+    # doc_list_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/eng-docs-list-win.txt'
+    doc_list_file = 'e:/data/el/LDC2015E20/data/eval/data/eng-docs-list-win.txt'
+    emadr_data_dir = 'e:/data/emadr/el/tac/2014/eval'
+    line_docs_file = os.path.join(emadr_data_dir, 'docs.txt')
     # __gen_line_docs_file_tac(doc_list_file, line_docs_file)
 
-    tokenized_line_docs_file = 'e:/data/emadr/el/tac/%d/%s/docs-tokenized.txt' % (year, part)
+    tokenized_line_docs_file = os.path.join(emadr_data_dir, 'docs-tokenized.txt')
     proper_word_cnts_dict_file = 'e:/data/emadr/el/wiki/words_dict_proper.txt'
     max_word_len = 20
-    tokenized_line_docs_lc_file = 'e:/data/emadr/el/tac/%d/%s/docs-tokenized-lc.txt' % (year, part)
-    bow_docs_file = 'e:/data/emadr/el/tac/%d/%s/dw.bin' % (year, part)
+    tokenized_line_docs_lc_file = os.path.join(emadr_data_dir, 'docs-tokenized-lc.txt')
+    bow_docs_file = os.path.join(emadr_data_dir, 'dw.bin')
 
     textutils.gen_lowercase_token_file(tokenized_line_docs_file, proper_word_cnts_dict_file,
                                        max_word_len, 1, tokenized_line_docs_lc_file)
@@ -293,11 +295,22 @@ def __job_name_expansion():
     #              r'_kbp_2011_english_entity_linking_evaluation_queries.xml'
     # dst_query_file = r'e:/data/el/LDC2015E19/data/2011/eval/data/queries-name-expansion.xml'
     # doc_list_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/eng-docs-list-win.txt'
-    edl_mentions_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
-    doc_ner_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-entities-ner.txt'
-    tokenized_text_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-text-tokenized.txt'
     entity_candidates_dict_file = 'e:/data/edl/res/prog-gen/candidates-dict.bin'
-    dst_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-all-expansion.tab'
+
+    edl_mentions_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
+    doc_ner_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/doc-entities-ner.txt'
+    tokenized_text_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/doc-text-tokenized.txt'
+    dst_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-expansion-nloc.tab'
+
+    # edl_mentions_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
+    # doc_ner_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/doc-entities-ner.txt'
+    # tokenized_text_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/doc-text-tokenized.txt'
+    # dst_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-expansion-nloc.tab'
+
+    # edl_mentions_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
+    # doc_ner_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-entities-ner.txt'
+    # tokenized_text_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/doc-text-tokenized.txt'
+    # dst_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-all-expansion.tab'
     __name_expansion(edl_mentions_file, doc_ner_file, tokenized_text_file, entity_candidates_dict_file, dst_file)
 
 
@@ -310,9 +323,9 @@ def __test():
 
 if __name__ == '__main__':
     # __gen_tac_dw()
-    # __setup_doc_entities_file()
+    __setup_doc_entities_file()
     # gen_doc_mention_names()
     # __job_acronym_expansion()
-    __job_name_expansion()
+    # __job_name_expansion()
     # process_docs_for_ner()
     # __test()

@@ -1,5 +1,7 @@
 import numpy as np
 from itertools import izip
+from collections import Counter
+
 import ioutils
 from ioutils import load_labels_file
 
@@ -21,6 +23,28 @@ def split_docs_text_file_by_dataset_labels(doc_text_file, dataset_split_file,
             ftest.write(line)
     fin.close()
     ftrain.close()
+    ftest.close()
+
+
+def split_docs_text_file_by_dataset_labels_tvt(doc_text_file, dataset_split_file, dst_train_doc_text_file,
+                                               dst_val_doc_text_file, dst_test_doc_text_file):
+    data_split_labels = load_labels_file(dataset_split_file)
+    print data_split_labels[:10]
+    print len(data_split_labels)
+    fin = open(doc_text_file, 'r')
+    ftrain = open(dst_train_doc_text_file, 'wb')
+    fval = open(dst_val_doc_text_file, 'wb')
+    ftest = open(dst_test_doc_text_file, 'wb')
+    for l, line in izip(data_split_labels, fin):
+        if l == 0:
+            ftrain.write(line)
+        elif l == 1:
+            fval.write(line)
+        else:
+            ftest.write(line)
+    fin.close()
+    ftrain.close()
+    fval.close()
     ftest.close()
 
 
@@ -146,6 +170,63 @@ def load_words_to_idx_dict(dict_file, min_occurance=2):
         word_dict[vals[0]] = len(word_dict)
     fin.close()
     return word_dict
+
+
+def __get_word_dict(line_docs_file):
+    print 'getting dict ...'
+    word_idx_dict = dict()
+    word_cnt = 0
+    f = open(line_docs_file, 'r')
+    for line in f:
+        words = line.strip().split(' ')
+        for word in words:
+            curidx = word_idx_dict.get(word, -1)
+            if curidx < 0:
+                word_idx_dict[word] = word_cnt + 1
+                word_cnt += 1
+    f.close()
+    return word_idx_dict
+
+
+def __line_docs_to_idx_cnt_file_with_dict(line_docs_file, word_idx_dict, dst_file):
+    print len(word_idx_dict), 'words'
+    special_word_id = len(word_idx_dict) + 1
+    no_word_doc_cnt = 0
+    fin = open(line_docs_file, 'r')
+    fout = open(dst_file, 'wb')
+    for doc_idx, line in enumerate(fin):
+        words = line.strip().split(' ')
+        c = Counter(words)
+        idx_cnt = 0
+        for word, cnt in c.iteritems():
+            idx = word_idx_dict.get(word, -1)
+            if idx == -1:
+                continue
+            fout.write('%d:%d ' % (idx + 1, cnt))
+            idx_cnt += 1
+        if idx_cnt == 0:
+            fout.write('%d:1' % special_word_id)
+            no_word_doc_cnt += 1
+            print 'doc %d has no words' % doc_idx
+        fout.write('\n')
+
+        if doc_idx % 1000 == 0:
+            print doc_idx
+
+    fin.close()
+    fout.close()
+
+    print no_word_doc_cnt, 'docs have no words'
+
+
+def line_docs_to_idx_cnt_no_dict(line_docs_file, dst_file):
+    word_idx_dict = __get_word_dict(line_docs_file)
+    __line_docs_to_idx_cnt_file_with_dict(line_docs_file, word_idx_dict, dst_file)
+
+
+def line_docs_to_idx_cnt(line_docs_file, dict_file, dst_file, min_occurance=2):
+    word_idx_dict = load_words_to_idx_dict(dict_file, min_occurance)
+    __line_docs_to_idx_cnt_file_with_dict(line_docs_file, word_idx_dict, dst_file)
 
 
 def __get_word_cnts_dict(tokenized_line_docs_file, max_word_len=20, to_lower=True):
@@ -278,7 +359,7 @@ def gen_lowercase_token_file(tokenized_line_docs_file_name, proper_word_cnts_dic
         words = line.strip().lower().split(' ')
         is_first = True
         for word in words:
-            if word not in words_dict:
+            if word not in words_dict or len(word) <= 2:
                 continue
 
             if is_first:
@@ -323,6 +404,7 @@ def line_docs_to_bow(line_docs_file_name, words_dict, min_occurance, dst_bow_doc
             cnt = doc_word_cnts.get(idx, 0)
             doc_word_cnts[idx] = cnt + 1
 
+        word_cnt += len(doc_word_cnts)
         word_indices = np.zeros(len(doc_word_cnts), np.int32)
         word_cnts_arr = np.zeros(len(doc_word_cnts), np.uint16)
         for i, (idx, cnt) in enumerate(doc_word_cnts.iteritems()):
@@ -351,6 +433,7 @@ def line_docs_to_bow(line_docs_file_name, words_dict, min_occurance, dst_bow_doc
     np.asarray([line_cnt + 1, len(words_dict)], np.int32).tofile(fout)
     fout.close()
     print line_cnt + 1, 'lines total'
+    print float(word_cnt) / (line_cnt + 1), 'words in each doc'
 
 
 def gen_word_cnts_file_from_bow_file(bow_file, dst_word_cnts_file):

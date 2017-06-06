@@ -35,17 +35,18 @@ class ELTune(object):
         # m = mention_output.dimshuffle(0, 'x', 1)
 
         # cos similarities
-        sims = (c * m).sum(axis=2) + mask_matrix
+        sims = (c * m).sum(axis=2) + mask_matrix  # TODO
         # scores = 0.1 * commonness + 0.9 * sims
-        scores = 0.45 * commonness + 0.55 * sims
-        # scores = 0.6 * commonness + 0.4 * sims
+        # scores = 0.45 * commonness + 0.55 * sims
+        scores = 0.3 * commonness + 0.7 * sims
         # scores = 0.45 * commonness
         # scores = sims
 
         # scores = 0.3 * T.log(commonness) + 0.7 * T.log(sims)
         # scores = sims
         y_pred = T.argmax(scores, 1)
-        return y_pred, sims
+        max_score = T.max(scores, 1)
+        return y_pred, max_score
         # return T.sum(T.eq(sys_y, y))
 
     def loss(self, mention_vecs, gold_vecs, crpt_vecs, cmns_gold, cmns_crpt, l2_reg):
@@ -85,7 +86,8 @@ class ELTune(object):
     @staticmethod
     def get_mask_matrix(candidates_nums, max_num_candidates):
         num_mentions = len(candidates_nums)
-        mask_matrix = np.ones((num_mentions, max_num_candidates), theano.config.floatX)
+        # mask_matrix = np.ones((num_mentions, max_num_candidates), theano.config.floatX)
+        mask_matrix = np.zeros((num_mentions, max_num_candidates), theano.config.floatX)
         for i in xrange(num_mentions):
             mask_matrix[i][candidates_nums[i]:] = -1000
         return theano.shared(mask_matrix, borrow=True)

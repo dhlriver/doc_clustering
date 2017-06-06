@@ -3,8 +3,25 @@ import sklearn.cluster
 from sklearn.metrics.cluster import normalized_mutual_info_score
 from munkres import Munkres
 from itertools import izip
+import os
 
 import ioutils
+
+
+def topic_model_clustering(topic_dists):
+    sys_labels = list()
+    for i, topic_vec in enumerate(topic_dists):
+        cluster_idx = 0
+        max_dist = 0
+        for j, v in enumerate(topic_vec):
+            if v > max_dist:
+                cluster_idx = j
+                max_dist = v
+        # print cluster_idx, max_dist
+        sys_labels.append(cluster_idx)
+        if len(sys_labels) % 5000 == 0:
+            print len(sys_labels)
+    return sys_labels
 
 
 def __get_label_positions(labels):
@@ -175,6 +192,7 @@ def cluster_and_eval(vec_list, labels, num_clusters):
 
     # print len(labels), 'samples'
     print 'NMI: %f Purity: %f Rand index: %f' % (nmi_score, purity_score, ri_score)
+    print '%f\t%f\t%f' % (nmi_score, purity_score, ri_score)
     # print 'Accuracy: %f' % cluster_accuracy(labels, model.labels_)
 
     return nmi_score, purity_score, ri_score
@@ -211,29 +229,19 @@ def write_clustering_perf_to_csv(method, perf_list, dst_file):
     fout.close()
 
 
-def cluster_nyt():
-    num_clusters_list = [5, 10, 15, 20]
+def __cluster_nyt():
+    # num_clusters_list = [5, 10, 15, 20]
+    num_clusters_list = [10, 15, 20]
+    # num_clusters_list = [5]
     method = 'RSM'
 
+    datadir = 'e:/data/emadr/nyt-less-docs/world'
     result_file = 'd:/documents/lab/paper-data/plot/%s-results-ri.csv' % method.lower()
 
-    labels_file_name = 'e:/dc/nyt-world-full/processed/test/doc-labels.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/de-vecs.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/de-vecs.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/glove-vecs.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/dedw-vecs.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/dedw2-vecs-ner.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/dedw2-vecs-ner-200.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/dedw4-vecs-015.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/dedw5-vecs-ner.bin'
-    doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/rsm-vecs-20.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/drbm-vecs-30.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/pvdm-vecs.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/pvdbow-vecs.bin'
-    # doc_vec_file_name = 'e:/dc/nyt-world-full/processed/vecs/nvdm-nyt.bin'
-
-    # doc_vec_file_name = 'e:/dc/20ng_bydate/vecs/test-dedw-vecs.bin'
-    # labels_file_name = 'e:/dc/20ng_bydate/test_labels.bin'
+    labels_file_name = os.path.join(datadir, 'bindata/test-labels.bin')
+    # doc_vec_file_name = os.path.join(datadir, 'vecs/test-dedw-vecs.bin')
+    doc_vec_file_name = os.path.join(datadir, 'bindata/test-pvdbow-vecs.bin')
+    # doc_vec_file_name = os.path.join(datadir, 'rsm/test-rsm-vecs.bin')
 
     perf_list = list()
     # for num_clusters in [5, 10, 15, 20]:
@@ -245,23 +253,25 @@ def cluster_nyt():
         nmi_score, purity_score, ri_score = cluster_and_eval(vec_list, labels, num_clusters)
         perf_list.append((num_clusters, nmi_score, purity_score, ri_score))
         # break
-    write_clustering_perf_to_csv(method, perf_list, result_file)
+    # write_clustering_perf_to_csv(method, perf_list, result_file)
 
 
 def __cluster_20ng():
-    num_clusters = 10
-    labels_file = 'e:/data/emadr/20ng_bydate/test_labels.bin'
-    # doc_vec_file = 'e:/data/emadr/20ng_bydate/bin/test-dedw-vecs.bin'
-    doc_vec_file = 'e:/data/emadr/20ng_bydate/bin/test-pvdbow-vecs.bin'
+    num_clusters = 20
+    labels_file = 'e:/data/emadr/20ng_bydate/bindata/test-labels.bin'
+    # doc_vec_file = 'e:/data/emadr/20ng_bydate/bindata/test-dedw-vecs.bin'
+    # doc_vec_file = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs-0_8-50.bin'
+    # doc_vec_file = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs-cluster-0_15-50.bin'
+    # doc_vec_file = 'e:/data/emadr/20ng_bydate/bindata/test-pvdbow-vecs.bin'
+    doc_vec_file = 'e:/data/emadr/20ng_bydate/bindata/test-pvdm-vecs.bin'
+    # doc_vec_file = 'e:/data/emadr/20ng_bydate/rsm/test-rsm-vecs.bin'
 
     vec_list = ioutils.load_vec_list_file(doc_vec_file)
     labels = ioutils.load_labels_file(labels_file)
     nmi_score, purity_score, ri_score = cluster_and_eval(vec_list, labels, num_clusters)
+    print '%f\t%f\t%f' % (nmi_score, purity_score, ri_score)
 
-
-def main():
-    # cluster_nyt()
-    __cluster_20ng()
 
 if __name__ == '__main__':
-    main()
+    __cluster_nyt()
+    # __cluster_20ng()

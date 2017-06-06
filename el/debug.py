@@ -60,18 +60,21 @@ def show_errors():
 
 
 def __measure_perf():
-    # sys_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/output/sys-link-sm-0.tab'
-    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
-    sys_edl_file = 'e:/data/el/LDC2015E19/data/2010/eval/output/sys-link-sm-0.tab'
-    gold_edl_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
     # sys_edl_file = 'e:/data/el/LDC2015E19/data/2009/eval/output/sys-link-sm-0.tab'
-    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
+    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-expansion-nloc.tab'
+    # sys_edl_file = 'e:/data/el/LDC2015E19/data/2010/eval/output/sys-link-sm-0.tab'
+    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-expansion-nloc.tab'
+    # sys_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/output/sys-link-sm-expansion-all.tab'
+    # gold_edl_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-expansion-all.tab'
+    # sys_edl_file = 'e:/data/el/LDC2015E20/data/eval/output/sys-link-sm-raw.tab'
+    sys_edl_file = 'e:/data/el/LDC2015E20/data/eval/output/emadr-result-nonil.tab'
+    gold_edl_file = 'e:/data/el/LDC2015E20/data/eval/data/mentions-raw.tab'
     mid_eid_file = 'e:/data/edl/res/prog-gen/mid-to-eid.bin'
     # mid_eid_file = 'e:/data/edl/res/prog-gen/mid-to-eid-ac.bin'
     mid_eid_dict = load_mid_eid_file(mid_eid_file)
     sys_el_result = load_gold_el(sys_edl_file)
-    # filter_nil = False
-    filter_nil = True
+    filter_nil = False
+    # filter_nil = True
 
     f = open(gold_edl_file, 'r')
     gold_el_result = dict()
@@ -82,25 +85,33 @@ def __measure_perf():
         gold_el_result[vals[1]] = vals
     f.close()
 
-    hit_cnt, mention_cnt = 0, 0
+    inkb_hit_cnt, hit_cnt, mention_cnt, inkb_mention_cnt = 0, 0, 0, 0
     for qid, kbid in sys_el_result.iteritems():
-        eid = mid_eid_dict.get(kbid[2:], 'NIL')
+        eid = kbid
+        if kbid.startswith('m.'):
+            eid = mid_eid_dict.get(kbid[2:], 'NIL')
         gold_result = gold_el_result[qid]
         gold_id = gold_result[4]
         if filter_nil and gold_id.startswith('NIL'):
             continue
 
         mention_cnt += 1
+        if not gold_id.startswith('NIL'):
+            inkb_mention_cnt += 1
 
         if not filter_nil and eid.startswith('NIL') and gold_id.startswith('NIL'):
             hit_cnt += 1
             continue
         if eid == gold_id:
+            inkb_hit_cnt += 1
             hit_cnt += 1
             continue
         print eid, gold_result
         # print eid, gold_id
-    print float(hit_cnt) / mention_cnt
+    all_acc = float(hit_cnt) / mention_cnt
+    inkb_acc = float(inkb_hit_cnt) / inkb_mention_cnt
+    nil_acc = float(hit_cnt - inkb_hit_cnt) / (mention_cnt - inkb_mention_cnt)
+    print 'ALL: %f, INKB: %f, NIL: %f' % (all_acc, inkb_acc, nil_acc)
 
 
 def __get_legal_kbids(kbids, keep_nil):
@@ -115,11 +126,40 @@ def __get_legal_kbids(kbids, keep_nil):
     return indices, legal_kbids
 
 
+def __list_errors():
+    gold_edl_file = 'e:/data/el/LDC2015E20/data/eval/data/mentions-raw.tab'
+    sys_edl_file = 'e:/data/el/LDC2015E20/data/eval/output/emadr-result-coref.tab'
+    eid_wid_file = 'e:/data/el/res/eid_wid_ord_eid.txt'
+
+    eid_wid_dict = load_eid_wid_file(eid_wid_file)
+    gold_mentions = Mention.load_edl_file(gold_edl_file)
+    gold_qid_mentions = Mention.group_mentions_by_qid(gold_mentions)
+    sys_mentions = Mention.load_edl_file(sys_edl_file)
+    sys_qid_mentions = Mention.group_mentions_by_qid(sys_mentions)
+
+    for qid, mention in gold_qid_mentions.iteritems():
+        sys_mention = sys_qid_mentions[qid]
+        if sys_mention.kbid == mention.kbid:
+            continue
+        if sys_mention.kbid.startswith('NIL') and mention.kbid.startswith('NIL'):
+            continue
+        if mention.kbid.startswith('NIL'):
+            continue
+        wid_gold = eid_wid_dict.get(mention.kbid, -1)
+        wid_sys = eid_wid_dict.get(sys_mention.kbid, -1)
+        print '%s\t%s\t%s\t%s\t%d\t%d\t%s' % (qid, mention.kbid, sys_mention.kbid, mention.docid,
+                                              mention.beg_pos, mention.end_pos, mention.name)
+        print wid_gold, wid_sys
+        # print qid, mention.kbid, mention.name, sys_mention.kbid
+
+
 def __el_stat():
-    # data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-3.bin'
-    # gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
-    data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-name-exp-3.bin'
-    gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
+    data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-expansion-nloc-3.bin'
+    gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-raw.tab'
+    # data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-expansion-all-3.bin'
+    # gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-expansion-all.tab'
+    # data_file = 'e:/data/emadr/el/tac/2014/eval/el-2014-eval-raw-%d.bin' % 3
+    # gold_file = 'e:/data/el/LDC2015E20/data/eval/data/mentions-raw.tab'
     eid_wid_file = 'e:/data/el/res/eid_wid_ord_eid.txt'
     keep_nil = True
     only_show_not_in_candidate = False
@@ -186,28 +226,22 @@ def __el_stat():
 
 
 def __test():
-    def load_exp_file(filename):
-        exp_dict = dict()
-        f = open(filename, 'r')
-        for line in f:
-            vals = line.strip().split('\t')
-            exp_dict[vals[0]] = vals[1]
-        f.close()
-        return exp_dict
-
-    exp_dict0 = load_exp_file('e:/data/el/exp0.txt')
-    exp_dict1 = load_exp_file('e:/data/el/exp1.txt')
-    cnt = 0
-    for n, en in exp_dict0.iteritems():
-        if n not in exp_dict1:
-            if ' ' not in n and not n.isupper() and en.count(' ') == 1:
-                print '%s\t%s' % (n, en)
-                cnt += 1
-    print cnt
+    f = open('e:/data/emadr/el/tac/2010/eval/doc_vecs_4.bin', 'rb')
+    num_vecs, dim = np.fromfile(f, np.int32, 2)
+    print num_vecs, dim
+    for i in xrange(num_vecs):
+        v = np.fromfile(f, np.float32, dim)
+        print v
+        if i == 5:
+            break
+    f.close()
+    pass
 
 if __name__ == '__main__':
     # filter_errors()
     # show_errors()
-    __measure_perf()
+    # __measure_perf()
     # __test()
-    # __el_stat()
+    __el_stat()
+    # __list_errors()
+    pass

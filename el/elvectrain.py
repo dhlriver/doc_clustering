@@ -8,6 +8,7 @@ from itertools import izip
 import ioutils
 from eltune import ELTune
 from elutils import load_gold_el, load_docs_info
+from mention import Mention
 
 
 def __read_mention_data(fin, vec_dim):
@@ -205,8 +206,8 @@ def __build_train_model(xdatafile, gold_edl_file, num_crpt_vecs, elt, batch_size
 
 
 def __build_test_model(xdatafile, max_num_candidates, elt, keep_nil):
-    link_result_trivial, qids, kbids_list, cand_theano_vars = __build_x_for_testing(xdatafile,
-                                                                                    max_num_candidates, keep_nil)
+    link_result_trivial, qids, kbids_list, cand_theano_vars = __build_x_for_testing(xdatafile, max_num_candidates,
+                                                                                    keep_nil)
     mentions_vecs, commonnesses, cnd_vecs = cand_theano_vars
 
     nums_candidates = [len(kbids) for kbids in kbids_list]
@@ -235,14 +236,46 @@ def __kbid_hit(sys_kbid, gold_kbid, use_eid):
     return 0
 
 
-def __nerl_perf(result_triv, qids, kbids_list, y_pred, gold_el_result, keep_nil, use_eid=True):
-    # print result_triv
-    # print gold_el_result
-    result_rank = dict()
-    for qid, kbids, y in izip(qids, kbids_list, y_pred):
+def __save_link_result(edl_file, result_triv, qids, kbids_list, y_pred, max_scores, dst_file, use_nil_thres):
+    mentions = Mention.load_edl_file(edl_file)
+    for m in mentions:
+        m.kbid = 'NODEF'
+
+    qid_mentions = Mention.group_mentions_by_qid(mentions)
+    for qid, kbid in result_triv.iteritems():
+        qid_mentions[qid].kbid = kbid
+        # print qid, kbid
+
+    for qid, kbids, y, max_score in izip(qids, kbids_list, y_pred, max_scores):
         if y >= len(kbids):
             print y, len(kbids)
-        result_rank[qid] = kbids[y]
+        if qid_mentions[qid].kbid == 'NODEF':
+            if use_nil_thres and max_score < 0.5:
+                qid_mentions[qid].kbid = 'NIL'
+            else:
+                qid_mentions[qid].kbid = kbids[y]
+            # print qid, kbids[y]
+
+    for m in mentions:
+        if m.kbid.startswith('m.') or m.kbid.startswith('NIL'):
+            m.kbid = 'NIL0001'
+
+    Mention.save_as_edl_file(mentions, dst_file)
+
+
+def __nerl_perf(result_triv, qids, kbids_list, y_pred, max_scores, gold_el_result, keep_nil, use_nil_thres,
+                use_eid=True):
+    # print result_triv
+    # print gold_el_result
+    keep_nil = True
+    result_rank = dict()
+    for qid, kbids, y, max_score in izip(qids, kbids_list, y_pred, max_scores):
+        if y >= len(kbids):
+            print y, len(kbids)
+        if max_score > 0.5:
+            result_rank[qid] = kbids[y]
+        else:
+            result_rank[qid] = 'NIL'
         # result_rank[qid] = kbids[0]
 
     triv_hit_cnt, hit_cnt, nil_hit_cnt, num_mentions, num_nil_mentions = 0, 0, 0, 0, 0
@@ -281,33 +314,55 @@ def __nerl_perf(result_triv, qids, kbids_list, y_pred, gold_el_result, keep_nil,
 
 
 def __train_el():
-    year = 2010
+    year = 2014
     keep_nil = False
+    use_nil_thres = True
     method = 3
     train_data_file, train_gold_file = '', ''
     val_data_file, test_data_file = '', ''
     val_gold_file, test_gold_file = '', ''
+    result_file = ''
     if year == 2011:
-        train_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-3.bin'
-        train_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
-        val_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-3.bin'
-        val_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
-        test_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-name-exp-3.bin'
-        test_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-name-expansion.tab'
+        train_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-raw-%d.bin' % method
+        train_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-raw.tab'
+        val_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-raw-%d.bin' % method
+        val_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-raw.tab'
+        # train_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-raw-%d.bin' % method
+        # train_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-raw.tab'
+        # val_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-raw-%d.bin' % method
+        # val_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-raw.tab'
+        test_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-expansion-all-%d.bin' % method
+        test_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-expansion-all.tab'
     elif year == 2010:
-        train_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-3.bin'
-        train_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
-        val_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-3.bin'
-        val_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
-        test_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-3.bin'
-        test_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
+        # train_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-raw-%d.bin' % method
+        # train_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-raw.tab'
+        # val_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-raw-%d.bin' % method
+        # val_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-raw.tab'
+        train_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-raw-%d.bin' % method
+        train_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-raw.tab'
+        val_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-raw-%d.bin' % method
+        val_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-raw.tab'
+        test_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-expansion-nloc-%d.bin' % method
+        test_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-expansion-nloc.tab'
     elif year == 2009:
-        train_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-3.bin'
-        train_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions.tab'
-        val_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-3.bin'
-        val_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions.tab'
-        test_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-3.bin'
-        test_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions.tab'
+        train_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-raw-%d.bin' % method
+        train_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-raw.tab'
+        val_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-raw-%d.bin' % method
+        val_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-raw.tab'
+        # train_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-raw-%d.bin' % method
+        # train_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-raw.tab'
+        # val_data_file = 'e:/data/emadr/el/tac/2010/eval/el-2010-eval-raw-%d.bin' % method
+        # val_gold_file = 'e:/data/el/LDC2015E19/data/2010/eval/data/mentions-raw.tab'
+        test_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-expansion-nloc-%d.bin' % method
+        test_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-expansion-nloc.tab'
+    elif year == 2014:
+        train_data_file = 'e:/data/emadr/el/tac/2009/eval/el-2009-eval-raw-%d.bin' % method
+        train_gold_file = 'e:/data/el/LDC2015E19/data/2009/eval/data/mentions-raw.tab'
+        val_data_file = 'e:/data/emadr/el/tac/2011/eval/el-2011-eval-raw-%d.bin' % method
+        val_gold_file = 'e:/data/el/LDC2015E19/data/2011/eval/data/mentions-raw.tab'
+        test_data_file = 'e:/data/emadr/el/tac/2014/eval/el-2014-eval-raw-%d.bin' % method
+        test_gold_file = 'e:/data/el/LDC2015E20/data/eval/data/mentions-raw.tab'
+        result_file = 'e:/data/el/LDC2015E20/data/eval/output/emadr-result-nonil.tab'
 
     print 'building models ...'
 
@@ -333,18 +388,19 @@ def __train_el():
     # test_model_y_pred, test_link_result_triv, test_qids, test_kbids_list = __build_test_model(test_data_file,
     #                                                                                           max_num_candidates,
     #                                                                                           elt, keep_nil)
-    val_model_y_pred, val_link_result_triv, val_qids, val_kbids_list, msims = __build_test_model(val_data_file,
-                                                                                                 max_num_candidates,
-                                                                                                 elt, keep_nil)
-    test_model_y_pred, test_link_result_triv, test_qids, test_kbids_list, msims = __build_test_model(test_data_file,
-                                                                                                     max_num_candidates,
-                                                                                                     elt, keep_nil)
+    val_model_y_pred, val_link_result_triv, val_qids, val_kbids_list, val_sims = __build_test_model(val_data_file,
+                                                                                                    max_num_candidates,
+                                                                                                    elt, keep_nil)
+    test_model_y_pred, test_link_result_triv, test_qids, test_kbids_list, test_sims = __build_test_model(test_data_file,
+                                                                                                         max_num_candidates,
+                                                                                                         elt, keep_nil)
 
     print 'done'
 
     epoch = 0
     n_epochs = 70
     max_correct = 0
+    max_val_perf = -1
     while epoch < n_epochs:
         epoch += 1
         sum_cost = 0
@@ -353,19 +409,28 @@ def __train_el():
             sum_cost += minibatch_avg_cost
 
         cur_val_y_pred = val_model_y_pred()
-        val_perf = __nerl_perf(val_link_result_triv, val_qids, val_kbids_list, cur_val_y_pred,
-                               val_gold_result, keep_nil)
-        # cur_sims = msims()
-        # print cur_sims
+        max_val_scores = val_sims()
+        val_perf = __nerl_perf(val_link_result_triv, val_qids, val_kbids_list, cur_val_y_pred, max_val_scores,
+                               val_gold_result, keep_nil, use_nil_thres)
 
         cur_test_y_pred = test_model_y_pred()
+        max_test_scores = test_sims()
+        # print cur_test_y_pred
+        # print max_score
+        # print len(cur_test_y_pred), len(max_score)
         # for yp in cur_test_y_pred[:100]:
         #     print yp,
         # print
-        test_perf = __nerl_perf(test_link_result_triv, test_qids, test_kbids_list, cur_test_y_pred,
-                                test_gold_result, keep_nil)
+        test_perf = __nerl_perf(test_link_result_triv, test_qids, test_kbids_list, cur_test_y_pred, max_test_scores,
+                                test_gold_result, keep_nil, use_nil_thres)
 
-        print 'epoch: %d, val: %f, test: %f' % (epoch, val_perf, test_perf)
+        print 'epoch: %d, val: %f, test: %f' % (epoch, val_perf, test_perf),
+        if val_perf > max_val_perf:
+            max_val_perf = val_perf
+            print '\tMAX',
+            __save_link_result(test_gold_file, test_link_result_triv, test_qids, test_kbids_list,
+                               cur_test_y_pred, max_test_scores, result_file, use_nil_thres)
+        print
         # print epoch, cur_correct, cur_correct / num_mentions
         # if cur_correct > max_correct:
         #     max_correct = cur_correct

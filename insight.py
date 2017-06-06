@@ -3,6 +3,7 @@ import ioutils
 import heapq
 import scipy.spatial
 import math
+import os
 
 
 def __load_id_title_dict(id_title_file):
@@ -302,26 +303,68 @@ def words_in_common():
     print same_cnt
 
 
-def main():
+def __get_num_words(tokenizedlc_file):
+    f = open(tokenizedlc_file, 'r')
+    words_set = set()
+    docs_cnt = 0
+    for line in f:
+        docs_cnt += 1
+        words = line.strip().split(' ')
+        for word in words:
+            words_set.add(word)
+    return len(words_set), docs_cnt
+
+
+def __get_ee_pair_info(ee_file):
+    f = open(ee_file, 'rb')
+    num_entities, _ = np.fromfile(f, np.int32, 2)
+    pcnt = 0
+    for i in xrange(num_entities):
+        num_indices = np.fromfile(f, np.int32, 1)
+        np.fromfile(f, np.int32, num_indices)
+        cnts = np.fromfile(f, np.uint16, num_indices)
+        pcnt += np.sum(cnts)
+    f.close()
+    return pcnt
+
+
+def __get_entity_mention_info(de_file):
+    f = open(de_file, 'rb')
+    num_docs, num_enities = np.fromfile(f, np.int32, 2)
+    ecnt = 0
+    for i in xrange(num_docs):
+        num_indices = np.fromfile(f, np.int32, 1)
+        np.fromfile(f, np.int32, num_indices)
+        cnts = np.fromfile(f, np.uint16, num_indices)
+        ecnt += np.sum(cnts)
+    f.close()
+    return num_enities, ecnt
+
+
+def __dataset_statistics():
+    # datadir = 'e:/data/emadr/20ng_bydate'
+    datadir = 'e:/data/emadr/nyt-less-docs/world'
+    tokenizedlc_file = os.path.join(datadir, 'tokenizedlc/docs-tokenized-lc-30.txt')
+    ee_file = os.path.join(datadir, 'bindata/ee.bin')
+    de_file = os.path.join(datadir, 'bindata/de.bin')
+    num_ee_pairs = __get_ee_pair_info(ee_file)
+    num_entities, num_mentions = __get_entity_mention_info(de_file)
+    num_words, num_docs = __get_num_words(tokenizedlc_file)
+    print num_docs, 'docs'
+    print num_words, 'words'
+    print num_entities, 'entities'
+    print num_ee_pairs / 2, 'entity pairs'
+    print num_mentions, 'mentions'
+    print float(num_mentions) / num_docs, 'mentions per doc'
+
+
+if __name__ == '__main__':
+    __dataset_statistics()
     # close_words()
     # close_words_of_docs()
     # close_words_of_entities()
-    close_wiki_pages()
+    # close_wiki_pages()
     # close_wiki_pages_el_doc()
 
     # close_20ng_docs()
     # words_in_common()
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
-    plt.plot(range(10))
-    plt.savefig('e:/tmp0.eps')
-    plt.close()
-    # plt.figure()
-    plt.plot(range(5), 'ro-')
-    plt.savefig('e:/tmp1.eps')
-    # plt.show()
-    # main()
-    # test()

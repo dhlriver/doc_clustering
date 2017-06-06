@@ -2,6 +2,7 @@ import numpy as np
 from time import time
 from array import array
 from itertools import izip
+from gensim.models import word2vec
 
 import ioutils
 import textutils
@@ -460,8 +461,8 @@ def gen_ee_pairs_with_ner_result(docs_file, ner_result_file, mention_cliques_fil
         cur_mention_clique = set()
         prev_pos = 0
         for mention in mentions:
-            if line[mention[1]:mention[2]] != mention[0].decode('utf-8'):
-                print mention
+            # if line[mention[1]:mention[2]] != mention[0].decode('utf-8'):
+            #     print mention
             words = word_tokenize(line[prev_pos:mention[1]])
             if __has_sentence_end(words) and cur_mention_clique:
                 if len(cur_mention_clique) > 1:
@@ -599,24 +600,37 @@ def gen_entity_net_tac():
                          dst_doc_entity_list_file_text)
 
 
-def main():
+def __convert_wordvec():
+    word2vec_file = 'e:/data/common-res/GoogleNews-vectors-negative300.bin'
+    dst_file = 'e:/data/common-res/GoogleNews-vectors-negative300.txt'
+    print 'loading ...'
+    model = word2vec.Word2Vec.load_word2vec_format(word2vec_file, binary=True)
+    print 'done'
+    model.save_word2vec_format(dst_file, binary=False)
+
+
+def __test():
+    f = open('e:/data/common-res/GoogleNews-vectors-negative300.txt', 'r')
+    for i, line in enumerate(f):
+        print line.strip()
+
+        if i == 5:
+            break
+    f.close()
+
+
+if __name__ == '__main__':
+    start_time = time()
+    __test()
     # job_gen_20ng_doc_entity_list()
     # job_gen_entity_edge_list_from_cliques()
     # gen_entity_net_20ng()
 
     # job_init_entity_net_wiki()
-    gen_entity_net_wiki()
+    # gen_entity_net_wiki()
 
     # gen_entity_net_tac14()
     # gen_entity_net_tac()
 
-
-def test():
-    print 'test'
-
-
-if __name__ == '__main__':
-    start_time = time()
-    # test()
-    main()
+    # __convert_wordvec()
     print 'Elapsed time:', time() - start_time

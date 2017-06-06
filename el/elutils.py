@@ -39,6 +39,7 @@ def load_docs_info(xdatafile):
         mentions = list()
         for j in xrange(num_mentions):
             qid, kbids, commonnesses, vecs = __load_mention_info(f, vecdim)
+            # print vecs
             # print qid, kbids
             # print commonnesses
             # print kbids[2]

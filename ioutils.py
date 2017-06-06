@@ -13,6 +13,9 @@ def get_file_len(file_name):
 
 def read_str_with_byte_len(fin):
     slen = np.fromfile(fin, '>i1', 1)
+    if not slen:
+        return ''
+
     s = array('B')
     s.fromfile(fin, slen)
     return s.tostring()
@@ -70,6 +73,13 @@ def load_vec_list_file(vec_file_name):
     return vecs
 
 
+def save_labels(labels, dst_file):
+    fout = open(dst_file, 'wb')
+    np.asarray([len(labels)], dtype=np.int32).tofile(fout)
+    np.asarray(labels, dtype=np.int32).tofile(fout)
+    fout.close()
+
+
 def load_labels_file(labels_file_name):
     fin = open(labels_file_name, 'rb')
     num_labels = np.fromfile(fin, np.int32, 1)
@@ -96,3 +106,24 @@ def load_bow_file(file_name, uint16_cnts=True):
     fin.close()
 
     return word_indices_list, word_cnts_list, num_words
+
+
+def text_vecs_to_bin(text_vecs_file, dst_bin_file):
+    num_vecs, vec_len = 0, 0
+    fin = open(text_vecs_file, 'rb')
+    fout = open(dst_bin_file, 'wb')
+    np.asarray([0, 0], np.int32).tofile(fout)
+    for line in fin:
+        vals = line.strip().split(' ')
+        vec_len = len(vals)
+        num_vecs += 1
+        vec = list()
+        for val in vals:
+            vec.append(float(val))
+        np.asarray(vec, np.float32).tofile(fout)
+    fin.close()
+
+    print '%d vecs, dim: %d' % (num_vecs, vec_len)
+    fout.seek(0)
+    np.asarray([num_vecs, vec_len], np.int32).tofile(fout)
+    fout.close()
