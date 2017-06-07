@@ -3,7 +3,7 @@ import numpy as np
 import os
 import ioutils
 import dataarange
-from textclassification import doc_classification_svm, doc_classification_lr
+from textclassification import doc_classification_svm, doc_classification_lr, get_scores_label_file
 
 
 def save_doc2vec_vectors(model, dst_vecs_file_name):
@@ -96,10 +96,10 @@ def __classification():
     # data_dir = 'e:/data/emadr/nyt-world-full/processed/'
     # data_dir = 'e:/data/emadr/nyt-all/arts/'
     # data_dir = 'e:/data/emadr/nyt-all/business/'
-    data_dir = 'e:/data/emadr/nyt-less-docs/business/bindata/'
-    # data_dir = 'e:/data/emadr/20ng_bydate/bindata/'
+    # data_dir = 'e:/data/emadr/nyt-less-docs/business/bindata/'
+    data_dir = 'e:/data/emadr/20ng_bydate/bindata/'
     # method = 'pvdm'
-    method = 'pvdm'
+    method = 'pvdbow'
 
     all_vecs_file = os.path.join(data_dir, '%s-vecs.bin' % method)
     split_labels_file_name = os.path.join(data_dir, 'dataset-split-labels.bin')
@@ -107,13 +107,15 @@ def __classification():
     test_label_file = os.path.join(data_dir, 'test-labels.bin')
     train_vecs_file_name = os.path.join(data_dir, 'train-%s-vecs.bin' % method)
     test_vecs_file_name = os.path.join(data_dir, 'test-%s-vecs.bin' % method)
+    dst_y_pred_file = os.path.join(data_dir, 'ypred-%s.bin' % method)
 
-    # dataarange.split_vecs(all_vecs_file, split_labels_file_name, train_vecs_file_name, test_vecs_file_name,
-    #                       train_label=0, test_label=2)
+    dataarange.split_vecs(all_vecs_file, split_labels_file_name, train_vecs_file_name, test_vecs_file_name,
+                          train_label=0, test_label=2)
     # doc_classification_lr(train_vecs_file_name, train_label_file, test_vecs_file_name,
     #                       test_label_file, 0, -1)
-    doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name,
-                           test_label_file, 0, -1)
+    y_pred_test = doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name, 0, -1)
+    get_scores_label_file(test_label_file, y_pred_test)
+    ioutils.save_labels(y_pred_test, dst_y_pred_file)
 
 
 def __job_train_classification():
@@ -151,8 +153,9 @@ def __job_train_classification():
                 dataarange.split_vecs(dst_vecs_file, split_labels_file_name, train_vecs_file_name, test_vecs_file_name,
                                       train_label=0, test_label=2)
 
-                acc, prec, recall, f1 = doc_classification_svm(train_vecs_file_name, train_label_file,
-                                                               test_vecs_file_name, test_label_file, 0, -1)
+                y_pred_test = doc_classification_svm(train_vecs_file_name, train_label_file,
+                                                     test_vecs_file_name, 0, -1)
+                acc, prec, recall, f1 = get_scores_label_file(test_label_file, y_pred_test)
                 print '%d\t%f\t%d\t%d' % (min_count, def_alpha, ns, niters)
                 fout.write('%d\t%f\t%d\n' % (min_count, def_alpha, ns))
                 fout.write('%f\t%f\t%f\t%f\n' % (acc, prec, recall, f1))
@@ -161,6 +164,6 @@ def __job_train_classification():
 
 if __name__ == '__main__':
     # __job_train_classification()
-    __train_pv_20ng()
+    # __train_pv_20ng()
     # __train_pv_nyt()
-    # __classification()
+    __classification()

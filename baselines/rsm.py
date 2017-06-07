@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 import dataarange
-from textclassification import doc_classification_lr, doc_classification_svm
+from textclassification import doc_classification_lr, doc_classification_svm, get_scores_label_file
 from ioutils import text_vecs_to_bin
 
 
@@ -58,8 +58,8 @@ def __job_text_vecs_to_bin_classification():
                           train_vecs_file_name, test_vecs_file_name, train_label=0, test_label=2)
     # doc_classification_lr(train_vecs_file_name, train_label_file, test_vecs_file_name,
     #                       test_label_file, 0, -1)
-    doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name,
-                           test_label_file, 0, -1)
+    y_pred_test = doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name, 0, -1)
+    get_scores_label_file(test_label_file, y_pred_test)
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ from sklearn import svm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import os
 from sklearn.linear_model import LogisticRegression
+from ioutils import load_labels_file, save_labels
 
 import dataarange
 
@@ -20,12 +21,23 @@ def load_features(file_name):
     return vec_list
 
 
-def load_labels(file_name):
-    fin = open(file_name, 'rb')
-    num_labels = np.fromfile(fin, np.int32, 1)
-    labels = np.fromfile(fin, np.int32, num_labels)
-    fin.close()
-    return labels
+def get_scores(y_true, y_pred):
+    acc = accuracy_score(y_true, y_pred)
+    prec = precision_score(y_true, y_pred, average='macro')
+    recall = recall_score(y_true, y_pred, average='macro')
+    f1 = f1_score(y_true, y_pred, average='macro')
+    print 'accuracy', acc
+    print 'precision', prec
+    print 'recall', recall
+    print 'macro f1', f1
+    print '%f\t%f\t%f\t%f' % (acc, prec, recall, f1)
+
+    return acc, prec, recall, f1
+
+
+def get_scores_label_file(true_label_file, y_pred):
+    y_true = load_labels_file(true_label_file)
+    return get_scores(y_true, y_pred)
 
 
 def __truncate_vecs(vec_list, vec_beg, vec_end):
@@ -39,10 +51,10 @@ def __truncate_vecs(vec_list, vec_beg, vec_end):
 def __doc_classification(classifier, train_vec_file, train_label_file, test_vec_file, test_label_file,
                          vec_beg=0, vec_end=-1):
     train_x = load_features(train_vec_file)
-    train_y = load_labels(train_label_file)
+    train_y = load_labels_file(train_label_file)
 
     test_x = load_features(test_vec_file)
-    test_y = load_labels(test_label_file)
+    test_y = load_labels_file(test_label_file)
     # print train_y[1000:1100]
     # print test_y[1000:1100]
 
@@ -57,15 +69,7 @@ def __doc_classification(classifier, train_vec_file, train_label_file, test_vec_
     print 'done.'
 
     y_pred = classifier.predict(test_x)
-    acc = accuracy_score(test_y, y_pred)
-    prec = precision_score(test_y, y_pred, average='macro')
-    recall = recall_score(test_y, y_pred, average='macro')
-    f1 = f1_score(test_y, y_pred, average='macro')
-    print 'accuracy', acc
-    print 'precision', prec
-    print 'recall', recall
-    print 'macro f1', f1
-    print '%f\t%f\t%f\t%f' % (acc, prec, recall, f1)
+    get_scores(test_y, y_pred)
 
 
 def doc_classification_lr(train_vec_file, train_label_file, test_vec_file, test_label_file,
@@ -76,13 +80,12 @@ def doc_classification_lr(train_vec_file, train_label_file, test_vec_file, test_
 
 
 # use validation set for hyperparameters
-def doc_classification_svm(train_vec_file, train_label_file, test_vec_file, test_label_file,
+def doc_classification_svm(train_vec_file, train_label_file, test_vec_file,
                            vec_beg=0, vec_end=-1):
     train_x = load_features(train_vec_file)
-    train_y = load_labels(train_label_file)
+    train_y = load_labels_file(train_label_file)
 
     test_x = load_features(test_vec_file)
-    test_y = load_labels(test_label_file)
     # print train_y[1000:1100]
     # print test_y[1000:1100]
 
@@ -100,41 +103,34 @@ def doc_classification_svm(train_vec_file, train_label_file, test_vec_file, test
         trunc_vecs(test_x)
 
     print 'training svm ...'
-    # clf = svm.SVC(decision_function_shape='ovo')
-    clf = svm.SVC(decision_function_shape='ovo', kernel='linear')
+    clf = svm.SVC(decision_function_shape='ovo')
+    # clf = svm.SVC(decision_function_shape='ovo', kernel='linear')
     # clf = svm.LinearSVC(dual=False)
     clf.fit(train_x, train_y)
     print 'done.'
 
     y_pred = clf.predict(test_x)
-    acc = accuracy_score(test_y, y_pred)
-    prec = precision_score(test_y, y_pred, average='macro')
-    recall = recall_score(test_y, y_pred, average='macro')
-    f1 = f1_score(test_y, y_pred, average='macro')
-    print 'accuracy', acc
-    print 'precision', prec
-    print 'recall', recall
-    print 'macro f1', f1
-    print '%f\t%f\t%f\t%f' % (acc, prec, recall, f1)
-
-    return acc, prec, recall, f1
+    return y_pred
 
 
 def __20ng_classification():
-    all_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/dew-vecs-0_8-50.bin'
+    datadir = 'e:/data/emadr/20ng_bydate'
+    all_vecs_file_name = os.path.join(datadir, 'vecs/dew-vecs-0_8-50.bin')
     # all_vecs_file_name = 'e:/data/emadr/20ng_bydate/vecs/dedw-vecs.bin'
-    split_labels_file_name = 'e:/data/emadr/20ng_bydate/bindata/dataset-split-labels.bin'
-    train_label_file = 'e:/data/emadr/20ng_bydate/bindata/train-labels.bin'
-    test_label_file = 'e:/data/emadr/20ng_bydate/bindata/test-labels.bin'
-    train_vecs_file_name = 'e:/data/emadr/20ng_bydate/bindata/train-dedw-vecs.bin'
-    test_vecs_file_name = 'e:/data/emadr/20ng_bydate/bindata/test-dedw-vecs.bin'
+    split_labels_file_name = os.path.join(datadir, 'bindata/dataset-split-labels.bin')
+    train_label_file = os.path.join(datadir, 'bindata/train-labels.bin')
+    test_label_file = os.path.join(datadir, 'bindata/test-labels.bin')
+    train_vecs_file_name = os.path.join(datadir, 'bindata/train-dedw-vecs.bin')
+    test_vecs_file_name = os.path.join(datadir, 'bindata/test-dedw-vecs.bin')
+    dst_y_pred_file = os.path.join(datadir, 'bindata/ypred-emadr.bin')
 
     dataarange.split_vecs(all_vecs_file_name, split_labels_file_name,
                           train_vecs_file_name, test_vecs_file_name, train_label=0, test_label=2)
     # doc_classification_lr(train_vecs_file_name, train_label_file, test_vecs_file_name,
     #                       test_label_file, 0, -1)
-    doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name,
-                           test_label_file, 0, -1)
+    y_pred_test = doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name, 0, -1)
+    get_scores_label_file(test_label_file, y_pred_test)
+    save_labels(y_pred_test, dst_y_pred_file)
 
 
 def __nyt_classification():
@@ -149,8 +145,8 @@ def __nyt_classification():
 
     dataarange.split_vecs(all_vecs_file_name, split_labels_file_name,
                           train_vecs_file_name, test_vecs_file_name, train_label=0, test_label=2)
-    doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name,
-                           test_label_file, 0, -1)
+    y_pred_test = doc_classification_svm(train_vecs_file_name, train_label_file, test_vecs_file_name, 0, -1)
+    get_scores_label_file(test_label_file, y_pred_test)
     # doc_classification_lr(train_vecs_file_name, train_label_file, test_vecs_file_name,
     #                       test_label_file, 0, -1)
 
@@ -167,7 +163,7 @@ def __job_split_vecs():
 
 
 if __name__ == '__main__':
-    # __20ng_classification()
+    __20ng_classification()
     # __job_split_vecs()
-    __nyt_classification()
+    # __nyt_classification()
     # doc_classification()
